@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { SkillCard } from "@/components/skill-card";
 import { BrowseFilters } from "@/components/browse-filters";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
@@ -63,12 +63,10 @@ export default async function BrowsePage({
             Discover and use AI skills shared across your organization
           </p>
         </div>
-        <Button asChild>
-          <Link href="/submit">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Skill
-          </Link>
-        </Button>
+        <Link href="/submit" className={buttonVariants()}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Skill
+        </Link>
       </div>
 
       <BrowseFilters teams={uniqueTeams} />
@@ -82,12 +80,10 @@ export default async function BrowsePage({
               ? "No skills match your filters"
               : "No skills yet. Be the first to share something your team uses."}
           </p>
-          <Button asChild>
-            <Link href="/submit">
-              <Plus className="mr-2 h-4 w-4" />
-              Create the first skill
-            </Link>
-          </Button>
+          <Link href="/submit" className={buttonVariants()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create the first skill
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -41,9 +41,9 @@ export interface Skill {
   // joined fields
   owner?: Profile;
   feedback_count?: number;
-  avg_rating?: number;
+  avg_rating?: number | null;
   use_count?: number;
-  success_rate?: number;
+  success_rate?: number | null;
 }
 
 export interface Feedback {

@@ -80,7 +80,7 @@ export function BrowseFilters({ teams }: { teams: string[] }) {
       </div>
       <Select
         value={searchParams.get("type") || ""}
-        onValueChange={(v) => updateFilter("type", v)}
+        onValueChange={(v) => updateFilter("type", v ?? "")}
       >
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="All Types" />
@@ -95,7 +95,7 @@ export function BrowseFilters({ teams }: { teams: string[] }) {
       </Select>
       <Select
         value={searchParams.get("agent") || ""}
-        onValueChange={(v) => updateFilter("agent", v)}
+        onValueChange={(v) => updateFilter("agent", v ?? "")}
       >
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="All Agents" />
@@ -111,7 +111,7 @@ export function BrowseFilters({ teams }: { teams: string[] }) {
       {teams.length > 0 && (
         <Select
           value={searchParams.get("team") || ""}
-          onValueChange={(v) => updateFilter("team", v)}
+          onValueChange={(v) => updateFilter("team", v ?? "")}
         >
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="All Teams" />
@@ -128,7 +128,7 @@ export function BrowseFilters({ teams }: { teams: string[] }) {
       )}
       <Select
         value={searchParams.get("sort") || "newest"}
-        onValueChange={(v) => updateFilter("sort", v)}
+        onValueChange={(v) => updateFilter("sort", v ?? "newest")}
       >
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Sort by" />
