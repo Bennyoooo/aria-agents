@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aria - Agent Skill Marketplace
 
-## Getting Started
+Create, discover, and share AI skills across your organization. Skills work across Claude Code, ChatGPT, Copilot, Gemini, and more.
 
-First, run the development server:
+## What is this?
+
+Aria is an internal skill marketplace where teams share reusable AI skills (prompts, workflows, tools, context packs). Engineers discover and invoke skills directly from their AI agents via an MCP server. Agents leave feedback after using skills, creating a self-improving loop.
+
+## Architecture
+
+- **Web UI** (Next.js 15 + Supabase + Vercel) — browse, create, and manage skills
+- **MCP Server** (`aria-skills` npm package) — search/invoke skills from within Claude Code
+- **REST API** — agent-agnostic endpoints for any AI tool
+- **Feedback loop** — agents report outcomes, skills improve over time
+
+## Setup
+
+### 1. Supabase
+
+Create a Supabase project and run the migration:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Copy the SQL from supabase/migrations/001_initial_schema.sql
+# and run it in the Supabase SQL Editor
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Enable Google OAuth in Supabase Auth settings.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.local.example .env.local
+# Fill in your Supabase URL, anon key, and service role key
+```
 
-## Learn More
+### 3. Run the app
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. MCP Server (for Claude Code integration)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cd mcp-server
+npm install
+```
 
-## Deploy on Vercel
+Add to your Claude Code config (`.claude/settings.json`):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{
+  "mcpServers": {
+    "aria-skills": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/aria_agents/mcp-server/src/index.ts"],
+      "env": {
+        "ARIA_API_KEY": "<your-org-api-key-from-settings-page>",
+        "ARIA_SERVER_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_skills` | Search skills by query, type, agent, team, or tags |
+| `get_skill` | Get full skill details with feedback summary |
+| `invoke_skill` | Get instructions to execute, logs usage |
+| `log_feedback` | Report outcome after using a skill |
+
+## API Endpoints
+
+All endpoints authenticate via `Authorization: Bearer <org-api-key>`.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/skills/search` | Search skills |
+| GET | `/api/skills/[id]` | Get skill details |
+| POST | `/api/skills/[id]/invoke` | Invoke skill |
+| POST | `/api/skills/[id]/feedback` | Submit feedback |
