@@ -7,6 +7,7 @@ import { Star, Copy, MessageSquare, CheckCircle, XCircle, AlertCircle } from "lu
 import { CopyButton } from "@/components/copy-button";
 import { FeedbackForm } from "@/components/feedback-form";
 import { SkillActions } from "@/components/skill-actions";
+import { ForkButton } from "@/components/fork-button";
 import { FeedbackList } from "@/components/feedback-list";
 import type { Feedback, Skill } from "@/lib/supabase/types";
 
@@ -83,7 +84,10 @@ export default async function SkillDetailPage({
             <span>{new Date(skill.created_at).toLocaleDateString()}</span>
           </div>
         </div>
-        {isOwner && <SkillActions skillId={skill.id} isHidden={skill.is_hidden} />}
+        <div className="flex gap-2">
+          {!isOwner && <ForkButton skill={skill} />}
+          {isOwner && <SkillActions skillId={skill.id} isHidden={skill.is_hidden} />}
+        </div>
       </div>
 
       {/* Stats */}
