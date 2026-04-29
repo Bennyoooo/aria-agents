@@ -172,6 +172,74 @@ server.tool(
   }
 );
 
+// Tool: create_skill
+server.tool(
+  "create_skill",
+  "Create a new skill in your organization's marketplace. Use this to share a useful prompt, workflow, or tool with your team.",
+  {
+    title: z.string().describe("Short, descriptive title for the skill"),
+    description: z.string().min(50).describe("Description of what the skill does (min 50 chars)"),
+    skill_type: z.enum(["prompt", "workflow", "tool", "context_pack"]).describe("Type of skill"),
+    instructions: z.string().describe("The actual prompt or instructions the agent should follow"),
+    agent_compatibility: z.array(z.string()).describe("Compatible agents: claude_code, chatgpt, copilot, gemini, codex, cursor"),
+    function_team: z.string().describe("Team or function this skill belongs to (e.g., Engineering, Support)"),
+    owner_id: z.string().describe("UUID of the skill owner (your user ID)"),
+    tags: z.array(z.string()).optional().describe("Tags for discovery"),
+    tips: z.string().optional().describe("Tips for getting the best results"),
+  },
+  async (params) => {
+    const result = await apiCall("/api/skills", "POST", {
+      title: params.title,
+      description: params.description,
+      skill_type: params.skill_type,
+      instructions: params.instructions,
+      agent_compatibility: params.agent_compatibility,
+      function_team: params.function_team,
+      owner_id: params.owner_id,
+      tags: params.tags || [],
+      tips: params.tips,
+    });
+
+    if (result.error) {
+      return { content: [{ type: "text" as const, text: `Error: ${result.error}` }] };
+    }
+
+    return {
+      content: [{ type: "text" as const, text: `Skill created: **${result.skill.title}** (ID: ${result.skill.id})\nCreated at: ${result.skill.created_at}\n\nYour team can now find and use this skill!` }],
+    };
+  }
+);
+
+// Tool: list_skills
+server.tool(
+  "list_skills",
+  "List all available skills in your organization. Simpler than search — just shows everything.",
+  {},
+  async () => {
+    const result = await apiCall("/api/skills");
+
+    if (!result.skills || result.skills.length === 0) {
+      return { content: [{ type: "text" as const, text: "No skills available in your organization yet." }] };
+    }
+
+    const formatted = result.skills.map((s: {
+      title: string;
+      skill_type: string;
+      avg_rating: number | null;
+      use_count: number;
+      id: string;
+      function_team: string;
+    }, i: number) => {
+      const rating = s.avg_rating ? `${s.avg_rating.toFixed(1)}/5` : "—";
+      return `${i + 1}. **${s.title}** (${s.skill_type}) — ${s.function_team} | Rating: ${rating} | Uses: ${s.use_count} | ID: ${s.id}`;
+    }).join("\n");
+
+    return {
+      content: [{ type: "text" as const, text: `${result.total} skills available:\n\n${formatted}` }],
+    };
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
