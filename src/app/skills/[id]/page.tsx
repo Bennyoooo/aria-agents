@@ -16,6 +16,7 @@ import type { Feedback, Skill } from "@/lib/supabase/types";
 
 const AGENT_LABELS: Record<string, string> = {
   claude_code: "Claude Code",
+  opencode: "OpenCode",
   chatgpt: "ChatGPT",
   copilot: "Copilot",
   gemini: "Gemini",

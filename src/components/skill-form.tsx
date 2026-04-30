@@ -22,6 +22,7 @@ const SKILL_TYPES: { value: SkillType; label: string; description: string }[] = 
 
 const AGENTS = [
   { value: "claude_code", label: "Claude Code" },
+  { value: "opencode", label: "OpenCode / OpenWork" },
   { value: "chatgpt", label: "ChatGPT" },
   { value: "copilot", label: "Copilot" },
   { value: "gemini", label: "Gemini" },
