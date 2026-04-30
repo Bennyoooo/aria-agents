@@ -1,5 +1,8 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -21,37 +24,83 @@ const AGENT_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-export default async function SkillDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+export default function SkillDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const [skill, setSkill] = useState<(Skill & { owner?: { full_name: string; email: string; function_team: string } }) | null>(null);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [useCount, setUseCount] = useState(0);
+  const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  const { data: skill } = await supabase
-    .from("skills")
-    .select("*, owner:profiles!owner_id(full_name, email, function_team, contributor_role)")
-    .eq("id", id)
-    .single() as { data: Skill & { owner: { full_name: string; email: string; function_team: string; contributor_role: string } } | null };
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
 
-  if (!skill) return notFound();
+      const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: feedbackData } = await supabase
-    .from("feedback")
-    .select("*")
-    .eq("skill_id", id)
-    .order("created_at", { ascending: false })
-    .limit(20) as { data: Feedback[] | null };
+      const { data: skillData, error } = await supabase
+        .from("skills")
+        .select("*, owner:profiles!owner_id(full_name, email, function_team)")
+        .eq("id", id)
+        .single();
 
-  const { count: useCount } = await supabase
-    .from("copy_events")
-    .select("*", { count: "exact", head: true })
-    .eq("skill_id", id);
+      if (error || !skillData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
 
-  const feedback = feedbackData || [];
+      setSkill(skillData as typeof skill);
+      setIsOwner(user?.id === skillData.owner_id);
+
+      const { data: feedbackData } = await supabase
+        .from("feedback")
+        .select("*")
+        .eq("skill_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      setFeedback(feedbackData || []);
+
+      const { count } = await supabase
+        .from("copy_events")
+        .select("*", { count: "exact", head: true })
+        .eq("skill_id", id);
+
+      setUseCount(count || 0);
+      setLoading(false);
+    }
+
+    load();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl space-y-6">
+        <div className="h-8 w-64 bg-muted rounded animate-pulse" />
+        <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+        <div className="grid grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
+        <div className="h-48 bg-muted rounded-lg animate-pulse" />
+      </div>
+    );
+  }
+
+  if (notFound || !skill) {
+    return (
+      <div className="text-center py-16">
+        <h1 className="text-2xl font-bold">Skill not found</h1>
+        <p className="text-muted-foreground mt-2">This skill may have been hidden or deleted.</p>
+      </div>
+    );
+  }
+
   const totalFeedback = feedback.length;
   const successCount = feedback.filter((f) => f.outcome === "success").length;
   const failureCount = feedback.filter((f) => f.outcome === "failure").length;
@@ -60,8 +109,6 @@ export default async function SkillDetailPage({
     ? feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / feedback.filter((f) => f.rating).length
     : null;
   const successRate = totalFeedback > 0 ? (successCount / totalFeedback) * 100 : null;
-
-  const isOwner = user?.id === skill.owner_id;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -77,7 +124,7 @@ export default async function SkillDetailPage({
           <h1 className="text-3xl font-bold">{skill.title}</h1>
           <p className="text-muted-foreground">{skill.description}</p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>by {skill.owner?.full_name || skill.owner?.email}</span>
+            <span>by {skill.owner?.full_name || skill.owner?.email || "Unknown"}</span>
             <span>·</span>
             <span>{skill.function_team}</span>
             <span>·</span>
@@ -105,7 +152,7 @@ export default async function SkillDetailPage({
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold flex items-center justify-center gap-1">
               <Copy className="h-5 w-5" />
-              {useCount || 0}
+              {useCount}
             </div>
             <p className="text-xs text-muted-foreground">Total Uses</p>
           </CardContent>
@@ -132,13 +179,13 @@ export default async function SkillDetailPage({
       {/* Outcome breakdown */}
       {totalFeedback > 0 && (
         <div className="flex gap-4 text-sm">
-          <span className="flex items-center gap-1 text-green-400">
+          <span className="flex items-center gap-1 text-green-600">
             <CheckCircle className="h-4 w-4" /> {successCount} success
           </span>
-          <span className="flex items-center gap-1 text-yellow-400">
+          <span className="flex items-center gap-1 text-yellow-600">
             <AlertCircle className="h-4 w-4" /> {partialCount} partial
           </span>
-          <span className="flex items-center gap-1 text-red-400">
+          <span className="flex items-center gap-1 text-red-600">
             <XCircle className="h-4 w-4" /> {failureCount} failure
           </span>
         </div>
@@ -204,49 +251,6 @@ export default async function SkillDetailPage({
           </CardContent>
         </Card>
       )}
-
-      {/* MCP Config */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Use in Claude Code</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Add the Aria MCP server to your Claude Code config to search and invoke this skill directly from your agent.
-          </p>
-          <CopyButton
-            text={JSON.stringify({
-              mcpServers: {
-                "aria-skills": {
-                  command: "npx",
-                  args: ["aria-skills"],
-                  env: {
-                    ARIA_API_KEY: "<your-org-api-key>",
-                    ARIA_SERVER_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "<supabase-url>",
-                  },
-                },
-              },
-            }, null, 2)}
-            skillId={skill.id}
-            label="Copy MCP Config"
-          />
-          <pre className="text-xs font-mono bg-muted/50 rounded-lg p-3 overflow-x-auto">
-{`// .claude/settings.json
-{
-  "mcpServers": {
-    "aria-skills": {
-      "command": "npx",
-      "args": ["aria-skills"],
-      "env": {
-        "ARIA_API_KEY": "<your-org-api-key>",
-        "ARIA_SERVER_URL": "${process.env.NEXT_PUBLIC_SUPABASE_URL || "<supabase-url>"}"
-      }
-    }
-  }
-}`}
-          </pre>
-        </CardContent>
-      </Card>
 
       <Separator />
 
