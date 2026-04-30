@@ -16,10 +16,10 @@ const AGENT_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  prompt: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  workflow: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  tool: "bg-green-500/10 text-green-400 border-green-500/20",
-  context_pack: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  skill: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  mcp: "bg-green-500/10 text-green-500 border-green-500/20",
+  agent: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  plugin: "bg-orange-500/10 text-orange-500 border-orange-500/20",
 };
 
 export function SkillCard({ skill }: { skill: SkillWithStats }) {

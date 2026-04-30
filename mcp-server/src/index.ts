@@ -44,7 +44,7 @@ server.tool(
   "Search for AI skills shared by your organization. Returns matching skills with ratings and usage stats.",
   {
     query: z.string().optional().describe("Search query to match against skill titles and descriptions"),
-    skill_type: z.enum(["prompt", "workflow", "tool", "context_pack"]).optional().describe("Filter by skill type"),
+    skill_type: z.enum(["skill", "mcp", "agent", "plugin"]).optional().describe("Filter by type: skill (instructions/recipes), mcp (external tool connectors), agent (autonomous workflows), plugin (bundled packages)"),
     agent: z.string().optional().describe("Filter by compatible agent (e.g., claude_code, chatgpt, copilot)"),
     team: z.string().optional().describe("Filter by team/function (e.g., Engineering, Support)"),
     tags: z.array(z.string()).optional().describe("Filter by tags"),
@@ -179,9 +179,9 @@ server.tool(
   {
     title: z.string().describe("Short, descriptive title for the skill"),
     description: z.string().min(50).describe("Description of what the skill does (min 50 chars)"),
-    skill_type: z.enum(["prompt", "workflow", "tool", "context_pack"]).describe("Type of skill"),
+    skill_type: z.enum(["skill", "mcp", "agent", "plugin"]).describe("Type: skill (instructions), mcp (tool connector), agent (autonomous workflow), plugin (bundle)"),
     instructions: z.string().describe("The actual prompt or instructions the agent should follow"),
-    agent_compatibility: z.array(z.string()).describe("Compatible agents: claude_code, chatgpt, copilot, gemini, codex, cursor"),
+    agent_compatibility: z.array(z.string()).describe("Compatible agents: claude_code, opencode, chatgpt, copilot, gemini, codex, cursor"),
     function_team: z.string().describe("Team or function this skill belongs to (e.g., Engineering, Support)"),
     owner_id: z.string().describe("UUID of the skill owner (your user ID)"),
     tags: z.array(z.string()).optional().describe("Tags for discovery"),

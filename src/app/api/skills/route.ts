@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Description must be at least 50 characters" }, { status: 400 });
   }
 
-  const validTypes = ["prompt", "workflow", "tool", "context_pack"];
+  const validTypes = ["skill", "mcp", "agent", "plugin"];
   if (!validTypes.includes(skill_type)) {
     return NextResponse.json({ error: `Invalid skill_type. Must be one of: ${validTypes.join(", ")}` }, { status: 400 });
   }

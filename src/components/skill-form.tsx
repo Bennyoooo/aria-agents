@@ -14,10 +14,10 @@ import { toast } from "sonner";
 import type { Skill, SkillType, DataSensitivity } from "@/lib/supabase/types";
 
 const SKILL_TYPES: { value: SkillType; label: string; description: string }[] = [
-  { value: "prompt", label: "Prompt", description: "A reusable text instruction for any AI chat" },
-  { value: "workflow", label: "Workflow", description: "Multi-step process or SOP using AI" },
-  { value: "tool", label: "Tool / MCP Server", description: "A configured tool with an endpoint or install command" },
-  { value: "context_pack", label: "Context Pack", description: "Curated documents/data to load as AI context" },
+  { value: "skill", label: "Skill", description: "Instructions on how to perform a specific workflow. The recipe." },
+  { value: "mcp", label: "MCP", description: "Connects AI to external tools and live data. The power tools." },
+  { value: "agent", label: "Agent", description: "Autonomous persona that manages multi-step loops. The specialist." },
+  { value: "plugin", label: "Plugin", description: "A bundle of Skills + MCPs + Agents distributed as one unit." },
 ];
 
 const AGENTS = [

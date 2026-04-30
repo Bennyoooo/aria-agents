@@ -18,10 +18,10 @@ import type { SkillWithStats } from "@/lib/supabase/types";
 
 const SKILL_TYPES = [
   { value: "__all__", label: "All Types" },
-  { value: "prompt", label: "Prompt" },
-  { value: "workflow", label: "Workflow" },
-  { value: "tool", label: "Tool" },
-  { value: "context_pack", label: "Context Pack" },
+  { value: "skill", label: "Skill" },
+  { value: "mcp", label: "MCP" },
+  { value: "agent", label: "Agent" },
+  { value: "plugin", label: "Plugin" },
 ];
 
 const AGENTS = [

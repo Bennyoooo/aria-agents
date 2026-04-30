@@ -1,4 +1,4 @@
-export type SkillType = 'prompt' | 'workflow' | 'tool' | 'context_pack';
+export type SkillType = 'skill' | 'mcp' | 'agent' | 'plugin';
 export type FeedbackOutcome = 'success' | 'failure' | 'partial';
 export type FeedbackSource = 'agent' | 'web';
 export type CopySource = 'web' | 'mcp';
