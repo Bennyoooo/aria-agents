@@ -34,7 +34,7 @@ export function SkillCard({ skill }: { skill: SkillWithStats }) {
               {skill.title}
             </h3>
             <Badge variant="outline" className={`shrink-0 text-[10px] px-1.5 ${typeColor}`}>
-              {skill.skill_type.replace("_", " ")}
+              {skill.skill_type === "mcp" ? "MCP" : skill.skill_type.replace("_", " ")}
             </Badge>
           </div>
         </CardHeader>

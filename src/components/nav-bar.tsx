@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
-  { href: "/", label: "Playbook" },
+  { href: "/", label: "Knowledge Base" },
   { href: "/review", label: "Review" },
   { href: "/my-skills", label: "Mine" },
   { href: "/submit", label: "New" },

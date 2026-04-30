@@ -139,9 +139,9 @@ export default function BrowsePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Playbook</h1>
+          <h1 className="text-2xl font-bold">Knowledge Base</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Your team's shared AI skills, prompts, and workflows
+            Your team's shared skills, MCPs, agents, and plugins
           </p>
         </div>
         <Link href="/submit" className={buttonVariants()}>
@@ -161,7 +161,7 @@ export default function BrowsePage() {
             className="pl-9"
           />
         </div>
-        <Select value={typeFilter} onValueChange={(v) => handleFilterChange("type", v ?? "__all__")}>
+        <Select value={typeFilter === "__all__" ? undefined : typeFilter} onValueChange={(v) => handleFilterChange("type", v ?? "__all__")}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
@@ -171,7 +171,7 @@ export default function BrowsePage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={agentFilter} onValueChange={(v) => handleFilterChange("agent", v ?? "__all__")}>
+        <Select value={agentFilter === "__all__" ? undefined : agentFilter} onValueChange={(v) => handleFilterChange("agent", v ?? "__all__")}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="All Agents" />
           </SelectTrigger>
@@ -182,7 +182,7 @@ export default function BrowsePage() {
           </SelectContent>
         </Select>
         {teams.length > 0 && (
-          <Select value={teamFilter} onValueChange={(v) => handleFilterChange("team", v ?? "__all__")}>
+          <Select value={teamFilter === "__all__" ? undefined : teamFilter} onValueChange={(v) => handleFilterChange("team", v ?? "__all__")}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="All Teams" />
             </SelectTrigger>
