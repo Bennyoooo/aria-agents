@@ -1,14 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { toast } from "sonner";
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     const supabase = createClient();
@@ -20,17 +29,101 @@ function LoginForm() {
     });
   };
 
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const supabase = createClient();
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Check your email for a confirmation link!");
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        window.location.href = redirectTo;
+      }
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Welcome to Aria</CardTitle>
           <CardDescription>
-            Sign in with your corporate Google account to access your organization&apos;s skill marketplace
+            {isSignUp
+              ? "Create an account to access your organization's skill marketplace"
+              : "Sign in to access your organization's skill marketplace"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button onClick={handleGoogleLogin} className="w-full" size="lg">
+        <CardContent className="space-y-4">
+          {/* Email/Password form */}
+          <form onSubmit={handleEmailAuth} className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </div>
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+            </button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          {/* Google OAuth */}
+          <Button onClick={handleGoogleLogin} variant="outline" className="w-full" size="lg">
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -51,7 +144,8 @@ function LoginForm() {
             </svg>
             Sign in with Google
           </Button>
-          <p className="mt-4 text-xs text-center text-muted-foreground">
+
+          <p className="text-xs text-center text-muted-foreground">
             Use your corporate email. Personal email domains (Gmail, Yahoo, etc.) are blocked.
           </p>
         </CardContent>
