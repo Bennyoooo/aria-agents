@@ -1,58 +1,100 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { SkillCard } from "@/components/skill-card";
 import { BrowseFilters } from "@/components/browse-filters";
 import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import type { SkillWithStats } from "@/lib/supabase/types";
 
-export default async function BrowsePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const params = await searchParams;
-  const query = typeof params.q === "string" ? params.q : "";
-  const typeFilter = typeof params.type === "string" ? params.type : "";
-  const agentFilter = typeof params.agent === "string" ? params.agent : "";
-  const teamFilter = typeof params.team === "string" ? params.team : "";
-  const sortBy = typeof params.sort === "string" ? params.sort : "newest";
+function BrowseContent() {
+  const searchParams = useSearchParams();
+  const [skills, setSkills] = useState<SkillWithStats[]>([]);
+  const [teams, setTeams] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const supabase = await createServerSupabaseClient();
+  const query = searchParams.get("q") || "";
+  const typeFilter = searchParams.get("type") || "";
+  const agentFilter = searchParams.get("agent") || "";
+  const teamFilter = searchParams.get("team") || "";
+  const sortBy = searchParams.get("sort") || "newest";
 
-  let dbQuery = supabase
-    .from("skills_with_stats")
-    .select("*")
-    .eq("is_hidden", false);
+  useEffect(() => {
+    async function fetchSkills() {
+      setLoading(true);
+      const supabase = createClient();
 
-  if (query) {
-    dbQuery = dbQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+      let dbQuery = supabase
+        .from("skills_with_stats")
+        .select("*")
+        .eq("is_hidden", false);
+
+      if (query) {
+        dbQuery = dbQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+      }
+      if (typeFilter && typeFilter !== "__all__") {
+        dbQuery = dbQuery.eq("skill_type", typeFilter);
+      }
+      if (agentFilter && agentFilter !== "__all__") {
+        dbQuery = dbQuery.contains("agent_compatibility", [agentFilter]);
+      }
+      if (teamFilter && teamFilter !== "__all__") {
+        dbQuery = dbQuery.eq("function_team", teamFilter);
+      }
+
+      if (sortBy === "rating") {
+        dbQuery = dbQuery.order("avg_rating", { ascending: false, nullsFirst: false });
+      } else if (sortBy === "popular") {
+        dbQuery = dbQuery.order("use_count", { ascending: false });
+      } else {
+        dbQuery = dbQuery.order("created_at", { ascending: false });
+      }
+
+      const { data, error: fetchError } = await dbQuery.limit(50);
+
+      if (fetchError) {
+        setError(fetchError.message);
+      } else {
+        setSkills(data || []);
+      }
+
+      // Get teams for filter
+      const { data: teamData } = await supabase
+        .from("skills")
+        .select("function_team")
+        .eq("is_hidden", false);
+
+      const uniqueTeams = [...new Set(teamData?.map((t) => t.function_team).filter(Boolean) || [])];
+      setTeams(uniqueTeams);
+
+      setLoading(false);
+    }
+
+    fetchSkills();
+  }, [query, typeFilter, agentFilter, teamFilter, sortBy]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-72 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
-  if (typeFilter) {
-    dbQuery = dbQuery.eq("skill_type", typeFilter);
-  }
-  if (agentFilter) {
-    dbQuery = dbQuery.contains("agent_compatibility", [agentFilter]);
-  }
-  if (teamFilter) {
-    dbQuery = dbQuery.eq("function_team", teamFilter);
-  }
-
-  if (sortBy === "rating") {
-    dbQuery = dbQuery.order("avg_rating", { ascending: false, nullsFirst: false });
-  } else if (sortBy === "popular") {
-    dbQuery = dbQuery.order("use_count", { ascending: false });
-  } else {
-    dbQuery = dbQuery.order("created_at", { ascending: false });
-  }
-
-  const { data: skills, error } = await dbQuery.limit(50);
-
-  const { data: teams } = await supabase
-    .from("skills")
-    .select("function_team")
-    .eq("is_hidden", false);
-
-  const uniqueTeams = [...new Set(teams?.map((t) => t.function_team).filter(Boolean) || [])];
 
   return (
     <div className="space-y-6">
@@ -69,11 +111,11 @@ export default async function BrowsePage({
         </Link>
       </div>
 
-      <BrowseFilters teams={uniqueTeams} />
+      <BrowseFilters teams={teams} />
 
       {error ? (
-        <p className="text-destructive">Error loading skills: {error.message}</p>
-      ) : !skills || skills.length === 0 ? (
+        <p className="text-destructive">Error loading skills: {error}</p>
+      ) : skills.length === 0 ? (
         <div className="text-center py-16 space-y-4">
           <p className="text-muted-foreground text-lg">
             {query || typeFilter || agentFilter || teamFilter
@@ -93,5 +135,13 @@ export default async function BrowsePage({
         </div>
       )}
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense>
+      <BrowseContent />
+    </Suspense>
   );
 }
