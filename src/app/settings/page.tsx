@@ -82,7 +82,7 @@ export default async function SettingsPage() {
               API Key
             </CardTitle>
             <CardDescription>
-              Use this key to connect AI agents to your organization&apos;s skill marketplace
+              Use this key to connect AI agents to your team&apos;s playbook
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

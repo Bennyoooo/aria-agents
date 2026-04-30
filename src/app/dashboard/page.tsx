@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Organization-wide skill marketplace analytics
+          How your team shares and uses AI knowledge
         </p>
       </div>
 

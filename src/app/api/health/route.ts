@@ -4,7 +4,7 @@ export async function GET() {
   return NextResponse.json({
     status: "ok",
     version: "0.1.0",
-    name: "Aria Agent Skill Marketplace",
+    name: "Aria - Self-evolving AI knowledge platform",
     endpoints: {
       search: "POST /api/skills/search",
       get: "GET /api/skills/:id",

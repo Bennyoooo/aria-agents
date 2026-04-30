@@ -1,7 +1,7 @@
 {
   "name": "aria-skills",
   "version": "0.1.0",
-  "description": "MCP server for Aria Agent Skill Marketplace — search, invoke, and rate AI skills from within your agent",
+  "description": "MCP server for Aria — search, invoke, and improve AI skills from within your agent",
   "main": "dist/index.js",
   "bin": {
     "aria-skills": "dist/index.js"

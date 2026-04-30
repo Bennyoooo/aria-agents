@@ -114,7 +114,7 @@ export default async function MySkillsPage() {
           {!usedSkills || usedSkills.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">
-                You haven&apos;t used any skills yet. Browse the marketplace to find skills.
+                You haven&apos;t used any skills yet. Browse the playbook to find skills.
               </p>
             </div>
           ) : (
