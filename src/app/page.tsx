@@ -100,9 +100,9 @@ function BrowseContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Skill Marketplace</h1>
+          <h1 className="text-2xl font-bold">Playbook</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Discover and use AI skills shared across your organization
+            Your team's shared AI skills, prompts, and workflows
           </p>
         </div>
         <Link href="/submit" className={buttonVariants()}>

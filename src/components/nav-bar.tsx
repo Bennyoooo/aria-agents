@@ -16,10 +16,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
-  { href: "/", label: "Browse" },
-  { href: "/my-skills", label: "My Skills" },
-  { href: "/submit", label: "Create" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/", label: "Playbook" },
+  { href: "/my-skills", label: "Mine" },
+  { href: "/submit", label: "New" },
+  { href: "/dashboard", label: "Insights" },
 ];
 
 export function NavBar() {

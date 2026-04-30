@@ -83,8 +83,8 @@ function LoginForm() {
           <CardTitle className="text-2xl font-bold">Welcome to Aria</CardTitle>
           <CardDescription>
             {isSignUp
-              ? "Create an account to access your organization's skill marketplace"
-              : "Sign in to access your organization's skill marketplace"}
+              ? "Create an account to access your team's AI playbook"
+              : "Sign in to access your team's AI playbook"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
