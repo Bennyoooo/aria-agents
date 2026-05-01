@@ -21,6 +21,7 @@ const navLinks = [
   { href: "/my-skills", label: "Mine" },
   { href: "/submit", label: "New" },
   { href: "/dashboard", label: "Insights" },
+  { href: "/integrations", label: "Integrations" },
 ];
 
 export function NavBar() {
