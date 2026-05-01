@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'supabase/migrations/**'
+  workflow_dispatch:
 
 jobs:
   migrate:
@@ -18,6 +19,11 @@ jobs:
 
       - name: Link Supabase project
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Repair migration history
+        run: supabase migration repair --status applied 001_initial_schema 002_skill_versions_and_forks 003_skill_candidates 004_rename_types || true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
