@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Star, Copy, MessageSquare } from "lucide-react";
-import type { SkillWithStats } from "@/lib/supabase/types";
+import { Star, Copy, MessageSquare, Terminal, Wrench } from "lucide-react";
+import type { SkillWithStats, ToolProvided } from "@/lib/supabase/types";
 
 const AGENT_LABELS: Record<string, string> = {
   claude_code: "Claude Code",
@@ -15,15 +15,16 @@ const AGENT_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  skill: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  mcp: "bg-green-500/10 text-green-500 border-green-500/20",
-  agent: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-  plugin: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  skill: { label: "Skill", color: "bg-blue-500/10 text-blue-600 border-blue-200" },
+  mcp: { label: "MCP", color: "bg-green-500/10 text-green-600 border-green-200" },
+  agent: { label: "Agent", color: "bg-purple-500/10 text-purple-600 border-purple-200" },
+  plugin: { label: "Plugin", color: "bg-orange-500/10 text-orange-600 border-orange-200" },
 };
 
 export function SkillCard({ skill }: { skill: SkillWithStats }) {
-  const typeColor = TYPE_COLORS[skill.skill_type] || "";
+  const config = TYPE_CONFIG[skill.skill_type] || TYPE_CONFIG.skill;
+  const tools = (skill.tools_provided || []) as ToolProvided[];
 
   return (
     <Link href={`/skills/${skill.id}`}>
@@ -33,8 +34,8 @@ export function SkillCard({ skill }: { skill: SkillWithStats }) {
             <h3 className="font-semibold text-sm leading-tight group-hover:text-primary transition-colors line-clamp-2">
               {skill.title}
             </h3>
-            <Badge variant="outline" className={`shrink-0 text-[10px] px-1.5 ${typeColor}`}>
-              {skill.skill_type === "mcp" ? "MCP" : skill.skill_type.replace("_", " ")}
+            <Badge variant="outline" className={`shrink-0 text-[10px] px-1.5 ${config.color}`}>
+              {config.label}
             </Badge>
           </div>
         </CardHeader>
@@ -42,6 +43,22 @@ export function SkillCard({ skill }: { skill: SkillWithStats }) {
           <p className="text-xs text-muted-foreground line-clamp-2">
             {skill.description}
           </p>
+
+          {/* MCP: show install command + tool count */}
+          {skill.skill_type === "mcp" && skill.install_command && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1 font-mono">
+              <Terminal className="h-3 w-3 shrink-0" />
+              <span className="truncate">{skill.install_command}</span>
+            </div>
+          )}
+
+          {/* MCP: show tools provided */}
+          {tools.length > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Wrench className="h-3 w-3" />
+              <span>{tools.length} tools: {tools.slice(0, 3).map(t => t.name).join(", ")}{tools.length > 3 ? "..." : ""}</span>
+            </div>
+          )}
 
           {/* Agent compatibility */}
           <div className="flex flex-wrap gap-1">

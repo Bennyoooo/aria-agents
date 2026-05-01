@@ -47,8 +47,10 @@ export function SkillForm({ skill, mode }: SkillFormProps) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState(skill?.title ?? "");
   const [description, setDescription] = useState(skill?.description ?? "");
-  const [skillType, setSkillType] = useState<SkillType>(skill?.skill_type ?? "prompt");
+  const [skillType, setSkillType] = useState<SkillType>(skill?.skill_type ?? "skill");
   const [instructions, setInstructions] = useState(skill?.instructions ?? "");
+  const [installCommand, setInstallCommand] = useState(skill?.install_command ?? "");
+  const [sourceUrl, setSourceUrl] = useState(skill?.source_url ?? "");
   const [agentCompat, setAgentCompat] = useState<string[]>(skill?.agent_compatibility ?? []);
   const [functionTeam, setFunctionTeam] = useState(skill?.function_team ?? "");
   const [tags, setTags] = useState(skill?.tags?.join(", ") ?? "");
@@ -109,6 +111,8 @@ export function SkillForm({ skill, mode }: SkillFormProps) {
       description,
       skill_type: skillType,
       instructions,
+      install_command: installCommand || null,
+      source_url: sourceUrl || null,
       agent_compatibility: agentCompat,
       function_team: functionTeam,
       tags: parsedTags,
@@ -148,6 +152,8 @@ export function SkillForm({ skill, mode }: SkillFormProps) {
           title,
           description,
           instructions,
+          install_command: installCommand || null,
+          source_url: sourceUrl || null,
           agent_compatibility: agentCompat,
           function_team: functionTeam,
           tags: parsedTags,
@@ -230,19 +236,55 @@ export function SkillForm({ skill, mode }: SkillFormProps) {
             </div>
           )}
 
-          {/* Instructions */}
+          {/* Instructions / SKILL.md */}
           <div className="space-y-2">
             <Label htmlFor="instructions">
-              Instructions <span className="text-muted-foreground text-xs">(the actual prompt or steps the agent follows)</span>
+              {skillType === "mcp" ? "Description" : "SKILL.md Content"}
+              <span className="text-muted-foreground text-xs ml-1">
+                {skillType === "mcp"
+                  ? "(what this MCP server does and how to use it)"
+                  : "(the full instructions the agent reads and follows)"}
+              </span>
             </Label>
             <Textarea
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Write the instructions that an AI agent should follow when using this skill..."
+              placeholder={skillType === "mcp"
+                ? "Describe what tools this MCP server provides and how to use them..."
+                : "Write the SKILL.md content that gets injected into the agent's context..."}
               rows={10}
               className="font-mono text-sm"
               required
+            />
+          </div>
+
+          {/* Install Command (MCP / Plugin) */}
+          {(skillType === "mcp" || skillType === "plugin") && (
+            <div className="space-y-2">
+              <Label htmlFor="installCommand">
+                Install Command <span className="text-muted-foreground text-xs">(how to install this MCP server)</span>
+              </Label>
+              <Input
+                id="installCommand"
+                value={installCommand}
+                onChange={(e) => setInstallCommand(e.target.value)}
+                placeholder="e.g., npx @modelcontextprotocol/server-github"
+                className="font-mono text-sm"
+              />
+            </div>
+          )}
+
+          {/* Source URL */}
+          <div className="space-y-2">
+            <Label htmlFor="sourceUrl">
+              Source URL <span className="text-muted-foreground text-xs">(optional, link to GitHub repo or original source)</span>
+            </Label>
+            <Input
+              id="sourceUrl"
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              placeholder="e.g., https://github.com/anthropics/skills/tree/main/skills/docx"
             />
           </div>
 

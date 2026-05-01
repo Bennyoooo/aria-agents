@@ -22,6 +22,23 @@ export interface Profile {
   created_at: string;
 }
 
+export interface EnvVar {
+  name: string;
+  required: boolean;
+  description: string;
+}
+
+export interface ToolProvided {
+  name: string;
+  description: string;
+}
+
+export interface SupportFile {
+  name: string;
+  path: string;
+  content: string;
+}
+
 export interface Skill {
   id: string;
   organization_id: string;
@@ -30,6 +47,11 @@ export interface Skill {
   description: string;
   skill_type: SkillType;
   instructions: string;
+  install_command: string | null;
+  source_url: string | null;
+  files: SupportFile[];
+  env_vars: EnvVar[];
+  tools_provided: ToolProvided[];
   agent_compatibility: string[];
   function_team: string;
   tags: string[] | null;
@@ -38,7 +60,6 @@ export interface Skill {
   tips: string | null;
   created_at: string;
   updated_at: string;
-  // joined fields
   owner?: Profile;
   feedback_count?: number;
   avg_rating?: number | null;
@@ -56,7 +77,6 @@ export interface Feedback {
   notes: string | null;
   agent_name: string | null;
   created_at: string;
-  // joined fields
   skill?: Skill;
   user?: Profile;
 }
