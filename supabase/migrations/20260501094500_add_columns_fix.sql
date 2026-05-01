@@ -1,12 +1,12 @@
--- Add columns that were missed because CREATE TABLE IF NOT EXISTS skipped existing table
+-- Safe to re-run: IF NOT EXISTS on columns, DROP IF EXISTS on view
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS install_command text;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS source_url text;
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS files jsonb DEFAULT '[]';
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS env_vars jsonb DEFAULT '[]';
 ALTER TABLE skills ADD COLUMN IF NOT EXISTS tools_provided jsonb DEFAULT '[]';
 
--- Recreate view to include new columns
-CREATE OR REPLACE VIEW skills_with_stats AS
+DROP VIEW IF EXISTS skills_with_stats;
+CREATE VIEW skills_with_stats AS
 SELECT s.*,
   COALESCE(f.feedback_count, 0) AS feedback_count,
   f.avg_rating,
