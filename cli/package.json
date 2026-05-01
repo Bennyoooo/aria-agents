@@ -1,0 +1,21 @@
+{
+  "name": "aria-cli",
+  "version": "0.1.0",
+  "description": "Install and manage AI skills, MCPs, agents, and plugins across all your AI agents",
+  "main": "dist/index.js",
+  "bin": {
+    "aria": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
