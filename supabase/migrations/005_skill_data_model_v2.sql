@@ -37,3 +37,4 @@ LEFT JOIN (
   FROM copy_events
   GROUP BY skill_id
 ) c ON c.skill_id = s.id;
+-- triggered Fri May  1 01:28:45 PDT 2026
