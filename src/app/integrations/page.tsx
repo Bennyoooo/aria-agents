@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { MessageSquare, Check, Plug, RefreshCw } from "lucide-react";
+import { MessageSquare, Mail, Check, Plug, RefreshCw } from "lucide-react";
 
 interface SlackChannel {
   id: string;
@@ -26,6 +26,8 @@ function IntegrationsContent() {
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [saving, setSaving] = useState(false);
   const [teamName, setTeamName] = useState<string | null>(null);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -36,11 +38,18 @@ function IntegrationsContent() {
       toast.success(`Connected to ${team || "Slack"}!`);
       setTeamName(team);
     }
+    if (success === "gmail_connected") {
+      const email = searchParams.get("email");
+      toast.success(`Connected ${email || "Gmail"}!`);
+      setGmailConnected(true);
+      setGmailEmail(email);
+    }
     if (error) {
-      toast.error(`Slack error: ${error}`);
+      toast.error(`Error: ${error}`);
     }
 
     loadChannels();
+    checkGmail();
   }, [searchParams]);
 
   async function loadChannels() {
@@ -84,6 +93,24 @@ function IntegrationsContent() {
     setChannels(prev =>
       prev.map(c => c.id === channelId ? { ...c, monitored: !c.monitored } : c)
     );
+  }
+
+  async function checkGmail() {
+    try {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { data } = await supabase
+        .from("gmail_connections")
+        .select("email, is_active")
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+      if (data) {
+        setGmailConnected(true);
+        setGmailEmail(data.email);
+      }
+    } catch {
+      // not connected
+    }
   }
 
   const monitoredCount = channels.filter(c => c.monitored).length;
@@ -197,18 +224,60 @@ function IntegrationsContent() {
         )}
       </Card>
 
-      {/* Future integrations placeholder */}
+      {/* Gmail */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-red-50 flex items-center justify-center">
+                <Mail className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <CardTitle>Gmail</CardTitle>
+                <CardDescription>
+                  {gmailConnected
+                    ? `Connected as ${gmailEmail}`
+                    : "Scan emails for skill-worthy knowledge your team shares"}
+                </CardDescription>
+              </div>
+            </div>
+            {gmailConnected ? (
+              <Badge className="bg-green-500/10 text-green-600 border-green-200">
+                <Check className="h-3 w-3 mr-1" /> Connected
+              </Badge>
+            ) : (
+              <Button onClick={() => window.location.href = "/api/gmail/oauth"}>
+                Connect Gmail
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {gmailConnected && (
+          <CardContent>
+            <Separator className="mb-4" />
+            <div>
+              <h3 className="text-sm font-medium mb-1">How it works</h3>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Aria scans your inbox daily (read-only, we never send emails)</li>
+                <li>Emails with how-tos, workflows, templates, or shared knowledge get flagged</li>
+                <li>Forwards, newsletters, promotions, and auto-generated emails are skipped</li>
+                <li>Your team reviews suggestions at the <a href="/review" className="text-primary hover:underline">Review page</a></li>
+              </ol>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Future integrations */}
       <Card className="opacity-60">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-              </svg>
+              <Plug className="h-5 w-5" />
             </div>
             <div>
               <CardTitle className="text-muted-foreground">More integrations coming</CardTitle>
-              <CardDescription>Google Drive, Notion, email, and more</CardDescription>
+              <CardDescription>Google Drive, Notion, Confluence, and more</CardDescription>
             </div>
           </div>
         </CardHeader>
