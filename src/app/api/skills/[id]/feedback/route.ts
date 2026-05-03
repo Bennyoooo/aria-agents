@@ -167,18 +167,40 @@ Rewrite the instructions to address the feedback. Keep the same structure and fo
 
 Return ONLY the revised instructions text, nothing else.`;
 
-  // Store the revision request — an LLM call would happen here
-  // For now, store it as a skill_candidate for review with the prompt
+  // Call LLM to generate the revised instructions
+  let revisedInstructions = revisionPrompt; // fallback if LLM call fails
+
+  try {
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      messages: [{
+        role: "user",
+        content: revisionPrompt,
+      }],
+    });
+
+    const textBlock = response.content.find(b => b.type === "text");
+    if (textBlock && textBlock.type === "text") {
+      revisedInstructions = textBlock.text;
+    }
+  } catch (err) {
+    console.error("LLM revision failed, storing prompt as fallback:", err);
+  }
+
+  // Store as a ready-to-review draft with the revised content
   await supabase.from("skill_candidates").insert({
     organization_id: skill.organization_id,
     source: "agent",
-    source_text: revisionPrompt,
+    source_text: revisedInstructions,
     suggested_type: skill.skill_type,
     suggested_title: `[Auto-revision] ${skill.title}`,
     confidence: 0.9,
     status: "pending",
   });
 
-  // Log the auto-revision event
-  console.log(`Auto-revision triggered for skill ${skillId}: ${feedbackSummary}`);
+  console.log(`Auto-revision generated for skill ${skillId}: ${feedbackSummary}`);
 }

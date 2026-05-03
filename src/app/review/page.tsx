@@ -61,44 +61,77 @@ export default function ReviewPage() {
 
     const title = editingId === candidate.id ? editTitle : (candidate.suggested_title || "Untitled skill");
     const instructions = editingId === candidate.id ? editInstructions : candidate.source_text;
-    const description = instructions.slice(0, 200).trim();
+    const isAutoRevision = candidate.suggested_title?.startsWith("[Auto-revision]");
 
-    // Create the skill
-    const { data: skill, error } = await supabase
-      .from("skills")
-      .insert({
-        title,
-        description: description.length >= 50
-          ? description
-          : description + " (extracted from Slack by Aria)",
-        instructions,
-        skill_type: candidate.suggested_type || "prompt",
-        agent_compatibility: ["claude_code", "chatgpt"],
-        function_team: "General",
-        organization_id: profile.organization_id,
-        owner_id: user.id,
-        tags: ["from-slack", "auto-extracted"],
-      })
-      .select("id")
-      .single();
+    if (isAutoRevision) {
+      // Auto-revision: update the existing skill's instructions
+      const originalTitle = candidate.suggested_title?.replace("[Auto-revision] ", "") || "";
 
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+      const { data: existingSkill } = await supabase
+        .from("skills")
+        .select("id")
+        .eq("organization_id", profile.organization_id)
+        .eq("title", originalTitle)
+        .single();
 
-    // Update candidate status
-    await supabase
-      .from("skill_candidates")
-      .update({
+      if (existingSkill) {
+        const { error } = await supabase
+          .from("skills")
+          .update({ instructions })
+          .eq("id", existingSkill.id);
+
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+
+        await supabase.from("skill_candidates").update({
+          status: "published",
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString(),
+          published_skill_id: existingSkill.id,
+        }).eq("id", candidate.id);
+
+        toast.success("Skill updated with revision!");
+      } else {
+        toast.error("Original skill not found. Publishing as new instead.");
+      }
+    } else {
+      // New skill: create it
+      const description = instructions.slice(0, 200).trim();
+      const { data: skill, error } = await supabase
+        .from("skills")
+        .insert({
+          title,
+          description: description.length >= 50
+            ? description
+            : description + " (extracted by Aria)",
+          instructions,
+          skill_type: candidate.suggested_type || "skill",
+          agent_compatibility: ["claude_code", "opencode", "chatgpt"],
+          function_team: "General",
+          organization_id: profile.organization_id,
+          owner_id: user.id,
+          tags: [candidate.source === "slack" ? "from-slack" : candidate.source === "email" ? "from-email" : "auto-extracted"],
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      await supabase.from("skill_candidates").update({
         status: "published",
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
         published_skill_id: skill?.id,
-      })
-      .eq("id", candidate.id);
+      }).eq("id", candidate.id);
 
-    toast.success("Skill published to your playbook!");
+      toast.success("Published to your knowledge base!");
+    }
+
     setCandidates(prev => prev.filter(c => c.id !== candidate.id));
     setEditingId(null);
   }
@@ -142,10 +175,10 @@ export default function ReviewPage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
-          Review Suggestions
+          Review
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Aria found these skill-worthy messages in your team's conversations. Approve to add them to your playbook.
+          Suggestions from Slack, email, and auto-revisions from feedback. Approve to update your knowledge base.
         </p>
       </div>
 
@@ -176,12 +209,18 @@ export default function ReviewPage() {
                       </CardTitle>
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {candidate.suggested_type}
-                      </Badge>
+                      {candidate.suggested_title?.startsWith("[Auto-revision]") ? (
+                        <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 border-purple-200">
+                          auto-revision
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {candidate.suggested_type}
+                        </Badge>
+                      )}
                       <span className="flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
-                        from Slack
+                        {candidate.source === "agent" ? "from feedback" : candidate.source === "email" ? "from email" : "from Slack"}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
