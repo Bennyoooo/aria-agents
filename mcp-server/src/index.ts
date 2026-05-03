@@ -4,33 +4,127 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const API_KEY = process.env.ARIA_API_KEY;
-const SERVER_URL = process.env.ARIA_SERVER_URL;
+import { execSync } from "child_process";
 
-if (!API_KEY || !SERVER_URL) {
-  console.error("Missing ARIA_API_KEY or ARIA_SERVER_URL environment variables");
+const API_KEY = process.env.ARIA_API_KEY;
+const SUPABASE_URL = process.env.ARIA_SUPABASE_URL || process.env.ARIA_SERVER_URL;
+const SERVICE_KEY = process.env.ARIA_SERVICE_KEY;
+
+if (!API_KEY || !SUPABASE_URL) {
+  console.error("Missing ARIA_API_KEY or ARIA_SUPABASE_URL environment variables");
   process.exit(1);
 }
 
-const BASE_URL = SERVER_URL.replace(/\/$/, "");
+if (!SERVICE_KEY) {
+  console.error("Missing ARIA_SERVICE_KEY (Supabase service role key)");
+  process.exit(1);
+}
 
-async function apiCall(path: string, method: string = "GET", body?: unknown) {
-  const url = `${BASE_URL}${path}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Authorization": `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+let ORG_ID: string | null = null;
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`API error ${response.status}: ${error}`);
+function curlJson(url: string): unknown {
+  const result = execSync(
+    `curl -s -H "apikey: ${SERVICE_KEY}" -H "Authorization: Bearer ${SERVICE_KEY}" "${url}"`,
+    { encoding: "utf-8", timeout: 10000 }
+  );
+  return JSON.parse(result);
+}
+
+function curlPost(url: string, data: unknown): unknown {
+  const json = JSON.stringify(data).replace(/'/g, "'\\''");
+  const result = execSync(
+    `curl -s -X POST -H "apikey: ${SERVICE_KEY}" -H "Authorization: Bearer ${SERVICE_KEY}" -H "Content-Type: application/json" -d '${json}' "${url}"`,
+    { encoding: "utf-8", timeout: 10000 }
+  );
+  try { return JSON.parse(result); } catch { return {}; }
+}
+
+function getOrgId(): string {
+  if (ORG_ID) return ORG_ID;
+  const orgs = curlJson(
+    `${SUPABASE_URL}/rest/v1/organizations?select=id&api_key=eq.${API_KEY}`
+  ) as Array<{ id: string }>;
+  if (!Array.isArray(orgs) || orgs.length === 0) {
+    throw new Error("Invalid API key — no organization found");
+  }
+  ORG_ID = orgs[0].id;
+  return ORG_ID;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function apiCall(path: string, method: string = "GET", body?: unknown): Promise<any> {
+  const orgId = getOrgId();
+
+  if (path === "/api/skills/search" && method === "POST") {
+    const { query, filters } = body as { query?: string; filters?: Record<string, string> };
+    let url = `${SUPABASE_URL}/rest/v1/skills_with_stats?organization_id=eq.${orgId}&is_hidden=eq.false&order=use_count.desc&limit=10&select=id,title,description,skill_type,agent_compatibility,function_team,tags,avg_rating,use_count,feedback_count`;
+    if (query) url += `&or=(title.ilike.%25${encodeURIComponent(query)}%25,description.ilike.%25${encodeURIComponent(query)}%25)`;
+    if (filters?.skill_type) url += `&skill_type=eq.${filters.skill_type}`;
+    if (filters?.agent_compatibility) url += `&agent_compatibility=cs.{${filters.agent_compatibility}}`;
+    if (filters?.function_team) url += `&function_team=eq.${encodeURIComponent(filters.function_team)}`;
+    return { skills: curlJson(url) };
   }
 
-  return response.json();
+  if (path === "/api/skills" && method === "GET") {
+    const skills = curlJson(
+      `${SUPABASE_URL}/rest/v1/skills_with_stats?organization_id=eq.${orgId}&is_hidden=eq.false&order=created_at.desc&limit=100&select=id,title,description,skill_type,agent_compatibility,function_team,tags,avg_rating,use_count,feedback_count`
+    ) as unknown[];
+    return { skills, total: skills.length };
+  }
+
+  if (path === "/api/skills" && method === "POST") {
+    const result = curlPost(`${SUPABASE_URL}/rest/v1/skills?select=id,title,created_at`, {
+      ...(body as Record<string, unknown>),
+      organization_id: orgId,
+    });
+    return { skill: result };
+  }
+
+  const skillIdMatch = path.match(/^\/api\/skills\/([^/]+)$/);
+  if (skillIdMatch && method === "GET") {
+    const id = skillIdMatch[1];
+    const skills = curlJson(
+      `${SUPABASE_URL}/rest/v1/skills_with_stats?id=eq.${id}&select=*`
+    ) as unknown[];
+    if (!Array.isArray(skills) || skills.length === 0) throw new Error("Skill not found");
+    const skill = skills[0] as Record<string, unknown>;
+    const fb = curlJson(
+      `${SUPABASE_URL}/rest/v1/feedback?skill_id=eq.${id}&select=outcome,notes&order=created_at.desc&limit=5`
+    ) as Array<{ outcome: string; notes: string }>;
+    return {
+      ...skill,
+      feedback_summary: {
+        success_rate: skill.success_rate,
+        avg_rating: skill.avg_rating,
+        total_uses: skill.use_count,
+        total_feedback: skill.feedback_count,
+        recent_notes: (fb || []).filter(f => f.notes).map(f => f.notes),
+      },
+    };
+  }
+
+  if (path.match(/\/invoke$/) && method === "POST") {
+    const id = path.split("/")[3];
+    const skills = curlJson(
+      `${SUPABASE_URL}/rest/v1/skills?id=eq.${id}&select=instructions,tips`
+    ) as unknown[];
+    if (!Array.isArray(skills) || skills.length === 0) throw new Error("Skill not found");
+    // Log copy event
+    curlPost(`${SUPABASE_URL}/rest/v1/copy_events`, { skill_id: id, source: "mcp" });
+    return skills[0];
+  }
+
+  if (path.match(/\/feedback$/) && method === "POST") {
+    const id = path.split("/")[3];
+    curlPost(`${SUPABASE_URL}/rest/v1/feedback`, {
+      skill_id: id,
+      source: "agent",
+      ...(body as Record<string, unknown>),
+    });
+    return { logged: true };
+  }
+
+  throw new Error(`Unknown API path: ${path}`);
 }
 
 const server = new McpServer({
