@@ -32,28 +32,44 @@ Add this to your project's `CLAUDE.md` (or `~/.claude/CLAUDE.md` for global):
 
 You have access to your team's shared knowledge base via the `aria` MCP server.
 
-### When to search Aria
-- Before starting any task, search Aria for relevant skills: `search_skills("keyword")`
-- When you encounter a pattern you've seen before
-- When asked to do something that sounds like it could be a common workflow
+### Before starting any task
+Search Aria for relevant skills: `search_skills("keyword")`. Someone on your
+team may have already solved this.
+
+### MANDATORY: After finishing ANY task
+Call `log_task_feedback` with feedback for EVERY skill, MCP tool, or Aria
+resource you used during the task. This is non-optional. The knowledge base
+self-improves based on this feedback. Include:
+- task_summary: one-line description of what you did
+- feedback: array of {skill_id, outcome, notes} for each skill used
+- outcome: "success" / "failure" / "partial"
+- notes: what worked, what broke, what's missing, how to improve it
+
+If you used NO Aria skills during a task, skip this step.
+
+Example:
+```
+log_task_feedback({
+  task_summary: "Set up CI pipeline for the frontend repo",
+  feedback: [
+    {skill_id: "abc-123", outcome: "success", notes: "worked perfectly"},
+    {skill_id: "def-456", outcome: "partial", notes: "missed TypeScript config step"}
+  ]
+})
+```
 
 ### When to create entries
-- After completing a task that involved a reusable workflow or prompt
-- When you discover a useful MCP server or tool configuration
-- When you write instructions that another team member might need
-
-### When to leave feedback
-- After using any Aria skill, call `log_feedback` with:
-  - outcome: "success" if it worked, "failure" if it didn't, "partial" if it partly worked
-  - rating: 1-5
-  - notes: what worked, what didn't, what could be improved
-- This is how the knowledge base improves over time
+After completing a task that involved a reusable workflow, prompt, or
+tool configuration that another team member might need, create it:
+`create_skill(...)`. If you're unsure whether it's worth sharing, share it.
+The team can always hide it later.
 
 ### Available tools
 - `search_skills(query)` — find relevant skills, MCPs, agents, or plugins
 - `get_skill(skill_id)` — read full details and instructions
 - `invoke_skill(skill_id)` — get instructions to follow (logs a usage event)
-- `log_feedback(skill_id, outcome, rating?, notes?)` — report results
+- `log_task_feedback(task_summary, feedback[])` — MANDATORY after every task
+- `log_feedback(skill_id, outcome, notes?)` — single skill feedback
 - `create_skill(title, description, ...)` — add new knowledge
 - `list_skills()` — see everything available
 ```

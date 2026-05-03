@@ -147,16 +147,16 @@ server.tool(
   }
 );
 
-// Tool: log_feedback
+// Tool: log_feedback (single skill)
 server.tool(
   "log_feedback",
-  "Log feedback after using a skill. This helps improve skills over time. Call this after invoke_skill completes.",
+  "Log feedback for a single skill. For batch feedback on all skills used in a task, use log_task_feedback instead.",
   {
-    skill_id: z.string().describe("The UUID of the skill you used"),
-    outcome: z.enum(["success", "failure", "partial"]).describe("How well the skill worked"),
-    rating: z.number().min(1).max(5).optional().describe("Rating from 1-5"),
-    notes: z.string().optional().describe("What worked, what didn't, suggestions for improvement"),
-    agent_name: z.string().optional().describe("Name of the agent providing feedback"),
+    skill_id: z.string().describe("The UUID of the skill"),
+    outcome: z.enum(["success", "failure", "partial"]).describe("How well it worked"),
+    rating: z.number().min(1).max(5).optional().describe("Rating 1-5"),
+    notes: z.string().optional().describe("What worked, what didn't, suggestions"),
+    agent_name: z.string().optional().describe("Agent name"),
   },
   async (params) => {
     await apiCall(`/api/skills/${params.skill_id}/feedback`, "POST", {
@@ -165,9 +165,42 @@ server.tool(
       notes: params.notes,
       agent_name: params.agent_name || "claude_code",
     });
+    return { content: [{ type: "text" as const, text: "Feedback logged." }] };
+  }
+);
+
+// Tool: log_task_feedback (batch — call this when finishing ANY task)
+server.tool(
+  "log_task_feedback",
+  "IMPORTANT: Call this when you finish ANY task. Report feedback for every skill, MCP tool, or resource you used during the task. This is how the knowledge base improves. Include both successes and failures.",
+  {
+    task_summary: z.string().describe("One-line summary of what the task was"),
+    feedback: z.array(z.object({
+      skill_id: z.string().describe("UUID of the skill/tool used"),
+      outcome: z.enum(["success", "failure", "partial"]),
+      notes: z.string().optional().describe("What worked or didn't, suggestions for improvement"),
+    })).describe("Feedback for each skill/tool used during the task"),
+    agent_name: z.string().optional(),
+  },
+  async (params) => {
+    let logged = 0;
+    let errors = 0;
+
+    for (const fb of params.feedback) {
+      try {
+        await apiCall(`/api/skills/${fb.skill_id}/feedback`, "POST", {
+          outcome: fb.outcome,
+          notes: fb.notes ? `[Task: ${params.task_summary}] ${fb.notes}` : `[Task: ${params.task_summary}]`,
+          agent_name: params.agent_name || "claude_code",
+        });
+        logged++;
+      } catch {
+        errors++;
+      }
+    }
 
     return {
-      content: [{ type: "text" as const, text: "Feedback logged. Thank you for helping improve this skill!" }],
+      content: [{ type: "text" as const, text: `Task feedback logged: ${logged} skills reported${errors > 0 ? `, ${errors} errors` : ""}. The knowledge base will use this to improve.` }],
     };
   }
 );
