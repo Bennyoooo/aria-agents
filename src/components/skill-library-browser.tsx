@@ -59,7 +59,7 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
   const [packageError, setPackageError] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("__all__");
+  const [typeFilter, setTypeFilter] = useState(showLegacySkills ? "__all__" : "skill");
   const [agentFilter, setAgentFilter] = useState("__all__");
   const [teamFilter, setTeamFilter] = useState("__all__");
   const [sortBy, setSortBy] = useState("newest");
@@ -78,8 +78,10 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
     if (searchQuery) {
       dbQuery = dbQuery.or(`name.ilike.%${searchQuery}%,slug.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
     }
-    if (type && type !== "__all__") {
-      dbQuery = dbQuery.eq("package_type", type);
+    const effectiveType = showLegacySkills ? type : "skill";
+
+    if (effectiveType && effectiveType !== "__all__") {
+      dbQuery = dbQuery.eq("package_type", effectiveType);
     }
     if (agent && agent !== "__all__") {
       dbQuery = dbQuery.contains("agent_compatibility", [agent]);
@@ -101,7 +103,7 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
     }
 
     setPackagesLoading(false);
-  }, []);
+  }, [showLegacySkills]);
 
   const fetchSkills = useCallback(async (searchQuery: string, type: string, agent: string, team: string, sort: string) => {
     if (!showLegacySkills) return;
@@ -187,7 +189,7 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
     fetchSkills(query, newType, newAgent, newTeam, newSort);
   };
 
-  const isFiltered = query || typeFilter !== "__all__" || agentFilter !== "__all__" || teamFilter !== "__all__";
+  const isFiltered = query || (showLegacySkills && typeFilter !== "__all__") || agentFilter !== "__all__" || teamFilter !== "__all__";
   const packageGrid = packagesLoading ? (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -202,7 +204,7 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
   ) : packages.length === 0 ? (
     <div className="py-16 text-center">
       <p className="text-lg text-muted-foreground">
-        {isFiltered ? "No packages match your filters" : "No public packages are available yet."}
+        {isFiltered ? "No skills match your filters" : "No public skills are available yet."}
       </p>
     </div>
   ) : (
@@ -261,16 +263,18 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
             className="pl-9"
           />
         </div>
-        <Select value={typeFilter === "__all__" ? undefined : typeFilter} onValueChange={(value) => handleFilterChange("type", value ?? "__all__")}>
-          <SelectTrigger className="w-full md:w-[150px]">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            {PACKAGE_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {showLegacySkills && (
+          <Select value={typeFilter === "__all__" ? undefined : typeFilter} onValueChange={(value) => handleFilterChange("type", value ?? "__all__")}>
+            <SelectTrigger className="w-full md:w-[150px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              {PACKAGE_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={agentFilter === "__all__" ? undefined : agentFilter} onValueChange={(value) => handleFilterChange("agent", value ?? "__all__")}>
           <SelectTrigger className="w-full md:w-[150px]">
             <SelectValue placeholder="All Agents" />

@@ -16,13 +16,10 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { User } from "@supabase/supabase-js";
 
-const navLinks = [
-  { href: "/console", label: "Console" },
-  { href: "/review", label: "Review" },
-  { href: "/my-skills", label: "Mine" },
-  { href: "/submit", label: "New" },
-  { href: "/dashboard", label: "Insights" },
-  { href: "/integrations", label: "Integrations" },
+const publicNavLinks = [
+  { href: "/#features", label: "Features" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/#library", label: "Skills Library" },
 ];
 
 export function NavBar() {
@@ -62,57 +59,46 @@ export function NavBar() {
               Aria <span className="font-normal text-muted-foreground">Labs</span><span className="text-accent-light">.</span>
             </span>
           </Link>
-          {user && (
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                    pathname === link.href
-                      ? "bg-accent/15 text-accent-light font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-surface-light/70"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="hidden md:flex items-center gap-1">
+            {publicNavLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="px-3 py-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:bg-surface-light/70 hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/#library"
-            className={`hidden px-3 py-1.5 rounded-md text-sm transition-colors md:inline-flex ${
-              pathname === "/"
-                ? "bg-accent/15 text-accent-light font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-surface-light/70"
-            }`}
-          >
-            Skill Library
-          </Link>
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="relative h-8 w-8 rounded-full outline-none">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{user.user_metadata?.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => window.location.href = "/settings"}>
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <Link href="/console" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                Console
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="relative h-8 w-8 rounded-full outline-none">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium">{user.user_metadata?.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => window.location.href = "/settings"}>
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <Link href="/login" className={buttonVariants({ size: "sm" })}>
               Sign in

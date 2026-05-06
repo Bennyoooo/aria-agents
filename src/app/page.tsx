@@ -117,7 +117,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-b border-border/20 py-24 md:py-32">
+      <section id="features" className="scroll-mt-20 border-b border-border/20 py-24 md:py-32">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-14 text-center">
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-accent-light">The Problem</p>
@@ -143,7 +143,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="border-b border-border/20 py-24 md:py-32">
+      <section id="how-it-works" className="scroll-mt-20 border-b border-border/20 py-24 md:py-32">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-14 text-center">
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-accent-light">How Aria Works</p>
