@@ -73,7 +73,9 @@ export default function HomePage() {
           </h1>
 
           <p className="animate-fade-in-up animate-delay-200 mx-auto mt-8 max-w-3xl text-lg leading-8 text-muted-foreground md:text-xl">
-            When someone finds a better way to do repeated work with AI, that know-how should not stay in their head or a private chat. Aria turns everyday workflows into shared, inspectable, installable skills.
+            Skills and runbooks are created while you work — no code, no friction.
+            <br />
+            They&apos;re shared across teams, auto-discovered by agents, and self-evolving with every session.
           </p>
 
           <div className="animate-fade-in-up animate-delay-300 mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">

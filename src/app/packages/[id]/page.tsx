@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -167,9 +168,25 @@ export default function PackageDetailPage() {
             <h1 className="text-3xl font-bold">{pkg.namespace}/{pkg.slug}</h1>
             <p className="text-muted-foreground mt-2">{pkg.description || pkg.name}</p>
           </div>
-          <div className="flex max-w-3xl items-center gap-2 rounded-lg border bg-muted/35 p-2">
-            <code className="min-w-0 flex-1 truncate px-2 font-mono text-sm">{installCommand}</code>
-            <CopyButton text={installCommand} skillId={pkg.id} label="Copy" />
+          <div className="max-w-3xl rounded-lg border border-accent/25 bg-accent/5 p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">Install preview</p>
+                <p className="text-xs text-muted-foreground">
+                  Aria CLI is in early access. This command works only after your team has adopted Aria.
+                </p>
+              </div>
+              <Link
+                href="/interest"
+                className="rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition-colors hover:bg-accent-light"
+              >
+                Join Early Access
+              </Link>
+            </div>
+            <div className="flex items-center gap-2 rounded-md border bg-background/50 p-2">
+              <code className="min-w-0 flex-1 truncate px-2 font-mono text-sm">{installCommand}</code>
+              <CopyButton text={installCommand} skillId={pkg.id} label="Copy" />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span>{pkg.name}</span>
