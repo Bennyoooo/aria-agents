@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 
@@ -78,6 +78,22 @@ export function installSkillToAgent(
   return targetDir;
 }
 
+export function installPackageDirectoryToAgent(
+  agent: AgentConfig,
+  slug: string,
+  packageDir: string,
+  scope: "user" | "project"
+): string {
+  const skillsDir =
+    scope === "project" ? agent.projectSkillsDir : agent.userSkillsDir;
+  const targetDir = join(skillsDir, slug);
+
+  mkdirSync(skillsDir, { recursive: true });
+  cpSync(packageDir, targetDir, { recursive: true, force: true });
+
+  return targetDir;
+}
+
 export function installMcpToAgent(
   agent: AgentConfig,
   slug: string,
@@ -132,8 +148,6 @@ export function uninstallFromAgent(
     return false;
   }
 
-  // For skills/agents, remove the directory
-  const { rmSync } = require("fs");
   const skillsDir =
     scope === "project"
       ? agent.projectSkillsDir

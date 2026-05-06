@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { getConfig, saveConfig, apiCall, type RegistrySkill } from "./api.js";
+import {
+  getConfig,
+  saveConfig,
+  apiCall,
+  getPackageDownload,
+  resolvePackage,
+  type PackageType,
+  type RegistrySkill,
+} from "./api.js";
 import {
   getDetectedAgents,
   installSkillToAgent,
@@ -9,6 +17,13 @@ import {
   uninstallFromAgent,
   detectAgents,
 } from "./agents.js";
+import {
+  cleanupExtractedPackage,
+  downloadAndExtractPackage,
+  formatPackageRef,
+  installExtractedPackageToAgent,
+  parsePackageSpecifier,
+} from "./packages.js";
 
 const program = new Command();
 
@@ -141,13 +156,20 @@ program
 // aria install
 // ============================================
 program
-  .command("install <id>")
-  .description("Install a skill, MCP, agent, or plugin into all detected agents")
+  .command("install <target> [name]")
+  .description("Install a package by type/name, or a legacy skill UUID")
   .option("--project", "Install at project level (travels with the repo)")
   .option("--global", "Install at user level (default)")
   .option("--agent <agent>", "Install into a specific agent only (claude_code, opencode, cursor, codex)")
-  .action(async (id, opts) => {
+  .action(async (target, name, opts) => {
     const scope: "user" | "project" = opts.project ? "project" : "user";
+
+    if (name && isPackageType(target)) {
+      await installPackage(target, name, scope, opts.agent);
+      return;
+    }
+
+    const id = target;
 
     try {
       // Fetch the skill details
@@ -360,6 +382,65 @@ function parseMcpConfig(instructions: string): {
     command: "npx",
     args: [instructions.split("\n")[0].trim()],
   };
+}
+
+async function installPackage(
+  type: PackageType,
+  specifier: string,
+  scope: "user" | "project",
+  requestedAgent?: string,
+): Promise<void> {
+  const { name, version } = parsePackageSpecifier(specifier);
+  const resolved = await resolvePackage(type, name, version);
+  const packageRef = formatPackageRef(resolved);
+
+  console.log(`Installing: ${packageRef}`);
+  console.log(`Scope: ${scope}-level`);
+  if (resolved.dependencies.length > 0) {
+    console.log(`Dependencies: ${resolved.dependencies.length} referenced package${resolved.dependencies.length !== 1 ? "s" : ""}`);
+  }
+  console.log();
+
+  let agents = getDetectedAgents().filter((agent) =>
+    resolved.package.agent_compatibility.includes(agent.id)
+  );
+
+  if (requestedAgent) {
+    agents = agents.filter((agent) => agent.id === requestedAgent);
+  }
+
+  if (agents.length === 0) {
+    console.log("No compatible agents detected locally.");
+    console.log(`This package works with: ${resolved.package.agent_compatibility.join(", ")}`);
+    return;
+  }
+
+  const download = await getPackageDownload(resolved.version.id);
+  const { packageDir, manifest } = await downloadAndExtractPackage(download);
+  const slug = slugify(resolved.package.slug || manifest.name);
+
+  let installed = 0;
+  try {
+    for (const agent of agents) {
+      try {
+        const paths = installExtractedPackageToAgent(agent, slug, packageDir, manifest, scope);
+        for (const path of paths) {
+          console.log(`  ✓ ${agent.name}: installed ${path}`);
+        }
+        installed++;
+      } catch (err) {
+        console.log(`  ✗ ${agent.name}: ${(err as Error).message}`);
+      }
+    }
+  } finally {
+    cleanupExtractedPackage(packageDir);
+  }
+
+  console.log(`\nInstalled into ${installed} agent${installed !== 1 ? "s" : ""}.`);
+}
+
+function isPackageType(value: string): value is PackageType {
+  return ["skill", "mcp", "agent", "plugin"].includes(value);
 }
 
 program.parse();

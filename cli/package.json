@@ -11,11 +11,13 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
+    "adm-zip": "^0.5.17",
     "commander": "^13.0.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.7.0"
   }
 }

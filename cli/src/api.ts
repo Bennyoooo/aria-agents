@@ -59,6 +59,24 @@ export async function apiCall(
   return supabaseRest(path, method, body, config);
 }
 
+export async function resolvePackage(
+  type: PackageType,
+  name: string,
+  version?: string
+): Promise<ResolvedPackage> {
+  return (await apiCall("/api/packages/resolve", "POST", {
+    type,
+    name,
+    version,
+  })) as ResolvedPackage;
+}
+
+export async function getPackageDownload(
+  versionId: string
+): Promise<PackageDownload> {
+  return (await apiCall(`/api/packages/versions/${versionId}/download`)) as PackageDownload;
+}
+
 async function supabaseRest(
   path: string,
   method: string,
@@ -169,4 +187,56 @@ export interface RegistrySkill {
   avg_rating: number | null;
   use_count: number;
   feedback_count: number;
+}
+
+export type PackageType = "skill" | "mcp" | "agent" | "plugin";
+
+export interface ResolvedPackage {
+  package: {
+    id: string;
+    namespace: string;
+    slug: string;
+    name: string;
+    description: string;
+    package_type: PackageType;
+    agent_compatibility: string[];
+    tags: string[];
+  };
+  version: {
+    id: string;
+    version: string;
+    storage_bucket: string;
+    storage_prefix: string;
+    manifest_path: string;
+    archive_path: string | null;
+    archive_hash: string | null;
+    content_hash: string | null;
+    size_bytes: number | null;
+  };
+  dependencies: Array<{
+    dependency_type: PackageType;
+    dependency_ref: string;
+    version_range: string | null;
+    mode: "reference" | "embedded";
+    optional: boolean;
+  }>;
+}
+
+export interface PackageDownload {
+  package: {
+    id: string;
+    namespace: string;
+    slug: string;
+    name: string;
+    package_type: PackageType;
+  };
+  version: {
+    id: string;
+    version: string;
+    archive_hash: string | null;
+    content_hash: string | null;
+    size_bytes: number | null;
+  };
+  download_url: string;
+  expires_in: number;
 }
