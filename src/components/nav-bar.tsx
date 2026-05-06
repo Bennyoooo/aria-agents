@@ -19,7 +19,7 @@ import type { User } from "@supabase/supabase-js";
 const publicNavLinks = [
   { href: "/#features", label: "Features" },
   { href: "/#how-it-works", label: "How It Works" },
-  { href: "/#library", label: "Skills Library" },
+  { href: "/library", label: "Skills Library" },
 ];
 
 export function NavBar() {
@@ -100,9 +100,14 @@ export function NavBar() {
               </DropdownMenu>
             </>
           ) : (
-            <Link href="/login" className={buttonVariants({ size: "sm" })}>
-              Sign in
-            </Link>
+            <>
+              <Link href="/interest" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                Early Access
+              </Link>
+              <Link href="/login" className={buttonVariants({ size: "sm" })}>
+                Sign in
+              </Link>
+            </>
           )}
         </div>
       </div>

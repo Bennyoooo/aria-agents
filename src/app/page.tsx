@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Eye, GitBranch, Library, RefreshCw, Rocket, Search, Sparkles, TrendingUp, Zap } from "lucide-react";
-import { SkillLibraryBrowser } from "@/components/skill-library-browser";
+import { ArrowRight, Check, Eye, RefreshCw, Rocket, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
 const lifecycle = [
@@ -78,12 +77,12 @@ export default function HomePage() {
           </p>
 
           <div className="animate-fade-in-up animate-delay-300 mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a href="#library" className={buttonVariants({ size: "lg", className: "animate-pulse-glow rounded-full px-8 py-5" })}>
+            <Link href="/library" className={buttonVariants({ size: "lg", className: "animate-pulse-glow rounded-full px-8 py-5" })}>
               Browse Skill Library
               <ArrowRight className="ml-2 h-4 w-4" />
-            </a>
-            <Link href="/console" className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-full px-8 py-5" })}>
-              Open Console
+            </Link>
+            <Link href="/interest" className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-full px-8 py-5" })}>
+              Request Early Access
             </Link>
           </div>
 
@@ -191,28 +190,6 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section id="library" className="scroll-mt-20 border-b border-border/20 py-24 md:py-32">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mb-8 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-            <div>
-              <p className="mb-3 flex items-center gap-2 text-sm font-medium uppercase tracking-[0.18em] text-accent-light">
-                <Library className="h-4 w-4" />
-                Skill Library
-              </p>
-              <h2 className="text-3xl font-medium md:text-5xl">Browse public skills</h2>
-              <p className="mt-3 max-w-2xl text-muted-foreground">
-                Public packages are shown here. Team-only legacy tools, feedback, and admin tabs live in the signed-in console.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-border/30 bg-surface/40 px-4 py-2 text-sm text-muted-foreground">
-              <Search className="h-4 w-4 text-accent-light" />
-              Inspect before install
-            </div>
-          </div>
-          <SkillLibraryBrowser mode="public" />
         </div>
       </section>
 

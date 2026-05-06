@@ -20,22 +20,10 @@ import type { PackageSummary } from "@/lib/packages/types";
 import type { SkillWithStats } from "@/lib/supabase/types";
 
 const PACKAGE_TYPES = [
-  { value: "__all__", label: "All Types" },
   { value: "skill", label: "Skill" },
-  { value: "mcp", label: "MCP" },
-  { value: "agent", label: "Agent" },
   { value: "plugin", label: "Plugin" },
-];
-
-const AGENTS = [
-  { value: "__all__", label: "All Agents" },
-  { value: "claude_code", label: "Claude Code" },
-  { value: "opencode", label: "OpenCode / OpenWork" },
-  { value: "chatgpt", label: "ChatGPT" },
-  { value: "copilot", label: "Copilot" },
-  { value: "gemini", label: "Gemini" },
-  { value: "codex", label: "Codex" },
-  { value: "cursor", label: "Cursor" },
+  { value: "mcp", label: "MCP" },
+  { value: "hook", label: "Hook" },
 ];
 
 const SORT_OPTIONS = [
@@ -44,14 +32,43 @@ const SORT_OPTIONS = [
   { value: "rating", label: "Highest Rated" },
 ];
 
+const CATEGORY_RULES = [
+  { label: "Document Work", terms: ["doc", "docx", "pdf", "pptx", "xlsx", "slides", "spreadsheet", "coauthor"] },
+  { label: "Design & Frontend", terms: ["design", "frontend", "canvas", "theme", "artifact", "web-artifact"] },
+  { label: "Engineering", terms: ["api", "mcp", "testing", "webapp", "builder"] },
+  { label: "Communication", terms: ["comms", "slack", "gif", "changelog"] },
+  { label: "Research & Writing", terms: ["research", "writer", "content"] },
+  { label: "Productivity", terms: ["organizer", "connect", "share", "creator"] },
+];
+
 type SkillLibraryBrowserProps = {
   mode?: "public" | "console";
 };
+
+function getPackageCategory(pkg: PackageSummary) {
+  const haystack = [
+    pkg.namespace,
+    pkg.slug,
+    pkg.name,
+    pkg.description,
+    ...pkg.tags,
+  ].join(" ").toLowerCase();
+
+  return CATEGORY_RULES.find((category) => (
+    category.terms.some((term) => haystack.includes(term))
+  ))?.label ?? "General";
+}
+
+function formatSource(source: string) {
+  if (source === "__all__") return "All Sources";
+  return source.charAt(0).toUpperCase() + source.slice(1);
+}
 
 export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProps) {
   const showLegacySkills = mode === "console";
   const [skills, setSkills] = useState<SkillWithStats[]>([]);
   const [packages, setPackages] = useState<PackageSummary[]>([]);
+  const [allPackages, setAllPackages] = useState<PackageSummary[]>([]);
   const [teams, setTeams] = useState<string[]>([]);
   const [loading, setLoading] = useState(showLegacySkills);
   const [packagesLoading, setPackagesLoading] = useState(true);
@@ -60,13 +77,32 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
 
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState(showLegacySkills ? "__all__" : "skill");
-  const [agentFilter, setAgentFilter] = useState("__all__");
+  const [sourceFilter, setSourceFilter] = useState("__all__");
+  const [categoryFilter, setCategoryFilter] = useState("__all__");
   const [teamFilter, setTeamFilter] = useState("__all__");
   const [sortBy, setSortBy] = useState("newest");
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchPackages = useCallback(async (searchQuery: string, type: string, agent: string, sort: string) => {
+  const applyPackageFilters = useCallback((
+    items: PackageSummary[],
+    type: string,
+    source: string,
+    category: string,
+  ) => items.filter((pkg) => {
+    if (type !== "__all__" && pkg.package_type !== type) return false;
+    if (source !== "__all__" && pkg.namespace !== source) return false;
+    if (category !== "__all__" && getPackageCategory(pkg) !== category) return false;
+    return true;
+  }), []);
+
+  const fetchPackages = useCallback(async (
+    searchQuery: string,
+    type: string,
+    source: string,
+    category: string,
+    sort: string,
+  ) => {
     const supabase = createClient();
 
     let dbQuery = supabase
@@ -77,14 +113,6 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
 
     if (searchQuery) {
       dbQuery = dbQuery.or(`name.ilike.%${searchQuery}%,slug.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-    }
-    const effectiveType = showLegacySkills ? type : "skill";
-
-    if (effectiveType && effectiveType !== "__all__") {
-      dbQuery = dbQuery.eq("package_type", effectiveType);
-    }
-    if (agent && agent !== "__all__") {
-      dbQuery = dbQuery.contains("agent_compatibility", [agent]);
     }
 
     if (sort === "newest") {
@@ -98,12 +126,14 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
     if (fetchError) {
       setPackageError(fetchError.message);
     } else {
-      setPackages((data || []) as PackageSummary[]);
+      const typedPackages = (data || []) as PackageSummary[];
+      setAllPackages(typedPackages);
+      setPackages(applyPackageFilters(typedPackages, type, source, category));
       setPackageError(null);
     }
 
     setPackagesLoading(false);
-  }, [showLegacySkills]);
+  }, [applyPackageFilters]);
 
   const fetchSkills = useCallback(async (searchQuery: string, type: string, agent: string, team: string, sort: string) => {
     if (!showLegacySkills) return;
@@ -149,8 +179,8 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
   }, [showLegacySkills]);
 
   useEffect(() => {
-    fetchPackages(query, typeFilter, agentFilter, sortBy);
-    fetchSkills(query, typeFilter, agentFilter, teamFilter, sortBy);
+    fetchPackages(query, typeFilter, sourceFilter, categoryFilter, sortBy);
+    fetchSkills(query, typeFilter, "__all__", teamFilter, sortBy);
 
     if (showLegacySkills) {
       const supabase = createClient();
@@ -169,27 +199,36 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPackages(value, typeFilter, agentFilter, sortBy);
-      fetchSkills(value, typeFilter, agentFilter, teamFilter, sortBy);
+      fetchPackages(value, typeFilter, sourceFilter, categoryFilter, sortBy);
+      fetchSkills(value, typeFilter, "__all__", teamFilter, sortBy);
     }, 300);
   };
 
   const handleFilterChange = (key: string, value: string) => {
     const newType = key === "type" ? value : typeFilter;
-    const newAgent = key === "agent" ? value : agentFilter;
+    const newSource = key === "source" ? value : sourceFilter;
+    const newCategory = key === "category" ? value : categoryFilter;
     const newTeam = key === "team" ? value : teamFilter;
     const newSort = key === "sort" ? value : sortBy;
 
     if (key === "type") setTypeFilter(value);
-    if (key === "agent") setAgentFilter(value);
+    if (key === "source") setSourceFilter(value);
+    if (key === "category") setCategoryFilter(value);
     if (key === "team") setTeamFilter(value);
     if (key === "sort") setSortBy(value);
 
-    fetchPackages(query, newType, newAgent, newSort);
-    fetchSkills(query, newType, newAgent, newTeam, newSort);
+    fetchPackages(query, newType, newSource, newCategory, newSort);
+    fetchSkills(query, newType, "__all__", newTeam, newSort);
   };
 
-  const isFiltered = query || (showLegacySkills && typeFilter !== "__all__") || agentFilter !== "__all__" || teamFilter !== "__all__";
+  const sourceOptions = ["__all__", ...Array.from(new Set(allPackages.map((pkg) => pkg.namespace))).sort()];
+  const categoryOptions = ["__all__", ...Array.from(new Set(allPackages.map((pkg) => getPackageCategory(pkg)))).sort()];
+  const isFiltered =
+    query ||
+    typeFilter !== "skill" ||
+    sourceFilter !== "__all__" ||
+    categoryFilter !== "__all__" ||
+    teamFilter !== "__all__";
   const packageGrid = packagesLoading ? (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -253,110 +292,148 @@ export function SkillLibraryBrowser({ mode = "public" }: SkillLibraryBrowserProp
         </div>
       )}
 
-      <div className="flex flex-col gap-3 md:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search public skills..."
-            value={query}
-            onChange={(event) => handleSearchChange(event.target.value)}
-            className="pl-9"
+      <div className="grid gap-8 md:grid-cols-[220px_1fr]">
+        <aside className="space-y-6">
+          <FilterGroup
+            title="Source"
+            options={sourceOptions.map((source) => ({ value: source, label: formatSource(source) }))}
+            value={sourceFilter}
+            onChange={(value) => handleFilterChange("source", value)}
           />
+          <FilterGroup
+            title="Type"
+            options={PACKAGE_TYPES}
+            value={typeFilter}
+            onChange={(value) => handleFilterChange("type", value)}
+          />
+          <FilterGroup
+            title="Category"
+            options={categoryOptions.map((category) => ({
+              value: category,
+              label: category === "__all__" ? "All Categories" : category,
+            }))}
+            value={categoryFilter}
+            onChange={(value) => handleFilterChange("category", value)}
+          />
+          {showLegacySkills && teams.length > 0 && (
+            <FilterGroup
+              title="Team"
+              options={[
+                { value: "__all__", label: "All Teams" },
+                ...teams.map((team) => ({ value: team, label: team })),
+              ]}
+              value={teamFilter}
+              onChange={(value) => handleFilterChange("team", value)}
+            />
+          )}
+        </aside>
+
+        <div className="min-w-0 space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search public skills..."
+                value={query}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={sortBy} onValueChange={(value) => handleFilterChange("sort", value ?? "newest")}>
+              <SelectTrigger className="w-full md:w-[150px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((sort) => (
+                  <SelectItem key={sort.value} value={sort.value}>{sort.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {showLegacySkills ? (
+            <Tabs defaultValue="packages">
+              <TabsList>
+                <TabsTrigger value="packages">
+                  <Boxes className="mr-2 h-4 w-4" />
+                  Packages
+                </TabsTrigger>
+                <TabsTrigger value="skills">Legacy Skills</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="packages" className="mt-4">
+                {packageGrid}
+              </TabsContent>
+
+              <TabsContent value="skills" className="mt-4">
+                {loading ? (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="h-48 animate-pulse rounded-lg bg-muted" />
+                    ))}
+                  </div>
+                ) : error ? (
+                  <p className="text-destructive">Error loading skills: {error}</p>
+                ) : skills.length === 0 ? (
+                  <div className="space-y-4 py-16 text-center">
+                    <p className="text-lg text-muted-foreground">
+                      {isFiltered
+                        ? "No skills match your filters"
+                        : "No legacy skills yet. Use packages for new public skills."}
+                    </p>
+                    <Link href="/submit" className={buttonVariants()}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Skill
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {skills.map((skill) => (
+                      <SkillCard key={skill.id} skill={skill} />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          ) : (
+            packageGrid
+          )}
         </div>
-        {showLegacySkills && (
-          <Select value={typeFilter === "__all__" ? undefined : typeFilter} onValueChange={(value) => handleFilterChange("type", value ?? "__all__")}>
-            <SelectTrigger className="w-full md:w-[150px]">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              {PACKAGE_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <Select value={agentFilter === "__all__" ? undefined : agentFilter} onValueChange={(value) => handleFilterChange("agent", value ?? "__all__")}>
-          <SelectTrigger className="w-full md:w-[150px]">
-            <SelectValue placeholder="All Agents" />
-          </SelectTrigger>
-          <SelectContent>
-            {AGENTS.map((agent) => (
-              <SelectItem key={agent.value} value={agent.value}>{agent.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {showLegacySkills && teams.length > 0 && (
-          <Select value={teamFilter === "__all__" ? undefined : teamFilter} onValueChange={(value) => handleFilterChange("team", value ?? "__all__")}>
-            <SelectTrigger className="w-full md:w-[150px]">
-              <SelectValue placeholder="All Teams" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All Teams</SelectItem>
-              {teams.map((team) => (
-                <SelectItem key={team} value={team}>{team}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <Select value={sortBy} onValueChange={(value) => handleFilterChange("sort", value ?? "newest")}>
-          <SelectTrigger className="w-full md:w-[150px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((sort) => (
-              <SelectItem key={sort.value} value={sort.value}>{sort.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
+    </div>
+  );
+}
 
-      {showLegacySkills ? (
-        <Tabs defaultValue="packages">
-          <TabsList>
-            <TabsTrigger value="packages">
-              <Boxes className="mr-2 h-4 w-4" />
-              Packages
-            </TabsTrigger>
-            <TabsTrigger value="skills">Legacy Skills</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="packages" className="mt-4">
-            {packageGrid}
-          </TabsContent>
-
-          <TabsContent value="skills" className="mt-4">
-            {loading ? (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-48 animate-pulse rounded-lg bg-muted" />
-                ))}
-              </div>
-            ) : error ? (
-              <p className="text-destructive">Error loading skills: {error}</p>
-            ) : skills.length === 0 ? (
-              <div className="space-y-4 py-16 text-center">
-                <p className="text-lg text-muted-foreground">
-                  {isFiltered
-                    ? "No skills match your filters"
-                    : "No legacy skills yet. Use packages for new public skills."}
-                </p>
-                <Link href="/submit" className={buttonVariants()}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Skill
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {skills.map((skill) => (
-                  <SkillCard key={skill.id} skill={skill} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      ) : (
-        packageGrid
-      )}
+function FilterGroup({
+  title,
+  options,
+  value,
+  onChange,
+}: {
+  title: string;
+  options: Array<{ value: string; label: string }>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-3 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{title}</p>
+      <div className="space-y-1">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`w-full rounded-lg border px-3 py-2 text-left text-xs font-mono transition-all ${
+              value === option.value
+                ? "border-accent/40 bg-accent/20 text-accent-light"
+                : "border-transparent text-muted-foreground hover:bg-surface/50 hover:text-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
