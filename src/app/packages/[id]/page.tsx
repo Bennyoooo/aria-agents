@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CopyButton } from "@/components/copy-button";
 import { MarkdownPreview } from "@/components/markdown-preview";
-import { Archive, Boxes, Download, ExternalLink, File, FileText, Folder, GitBranch, Lock, Package, Server, Shield } from "lucide-react";
+import { Archive, Boxes, ExternalLink, File, FileText, Folder, GitBranch, Lock, Package, Server, Shield } from "lucide-react";
 import type { PackageDependency, PackageFile, PackageSummary, PackageVersion } from "@/lib/packages/types";
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; icon: typeof FileText }> = {
@@ -17,17 +17,6 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; icon: typeof F
   mcp: { label: "MCP", color: "bg-green-500/10 text-green-600 border-green-200", icon: Server },
   agent: { label: "Agent", color: "bg-purple-500/10 text-purple-600 border-purple-200", icon: Package },
   plugin: { label: "Plugin", color: "bg-orange-500/10 text-orange-600 border-orange-200", icon: Boxes },
-};
-
-const AGENT_LABELS: Record<string, string> = {
-  claude_code: "Claude Code",
-  opencode: "OpenCode",
-  chatgpt: "ChatGPT",
-  copilot: "Copilot",
-  gemini: "Gemini",
-  codex: "Codex",
-  cursor: "Cursor",
-  other: "Other",
 };
 
 function formatBytes(value: number | null) {
@@ -167,6 +156,10 @@ export default function PackageDetailPage() {
             <h1 className="text-3xl font-bold">{pkg.namespace}/{pkg.slug}</h1>
             <p className="text-muted-foreground mt-2">{pkg.description || pkg.name}</p>
           </div>
+          <div className="flex max-w-3xl items-center gap-2 rounded-lg border bg-muted/35 p-2">
+            <code className="min-w-0 flex-1 truncate px-2 font-mono text-sm">{installCommand}</code>
+            <CopyButton text={installCommand} skillId={pkg.id} label="Copy" />
+          </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span>{pkg.name}</span>
             <span>·</span>
@@ -222,10 +215,9 @@ export default function PackageDetailPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue={pkg.package_type === "skill" ? "skill" : "install"}>
+      <Tabs defaultValue={pkg.package_type === "skill" ? "skill" : "files"}>
         <TabsList>
           {pkg.package_type === "skill" && <TabsTrigger value="skill">SKILL.md</TabsTrigger>}
-          <TabsTrigger value="install">Install</TabsTrigger>
           <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
           <TabsTrigger value="dependencies">References ({dependencies.length})</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
@@ -275,41 +267,6 @@ export default function PackageDetailPage() {
             </Card>
           </TabsContent>
         )}
-
-        <TabsContent value="install" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Aria CLI
-              </CardTitle>
-              <CopyButton text={installCommand} skillId={pkg.id} label="Copy" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <pre className="bg-muted/50 rounded-lg p-4 font-mono text-sm overflow-x-auto">{installCommand}</pre>
-              <p className="text-xs text-muted-foreground">
-                Downloads the package ZIP, validates `aria.json`, and installs through the compatible local agent adapters.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Compatible Agents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {pkg.agent_compatibility.length > 0 ? (
-                  pkg.agent_compatibility.map((agent) => (
-                    <Badge key={agent} variant="secondary">{AGENT_LABELS[agent] || agent}</Badge>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No agent compatibility declared yet.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="files">
           <Card>
