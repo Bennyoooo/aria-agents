@@ -25,9 +25,15 @@ const publicNavLinks = [
 export function NavBar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
-  const supabase = createClient();
 
   useEffect(() => {
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      return;
+    }
+
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const {
       data: { subscription },
@@ -38,6 +44,7 @@ export function NavBar() {
   }, []);
 
   const handleSignOut = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = "/login";
   };
