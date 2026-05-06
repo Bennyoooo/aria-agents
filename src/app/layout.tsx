@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { NavBar } from "@/components/nav-bar";
@@ -14,9 +14,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-logo",
+  display: "swap",
+  weight: ["300", "600", "700"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
-  title: "Aria - Your team's AI playbook",
-  description: "The shared AI playbook for your organization. Create, discover, and improve AI skills across every team and agent.",
+  title: "Aria Labs - The AI skill layer for teams",
+  description: "Browse, install, and evolve shared AI skills, plugins, agents, and MCP packages.",
 };
 
 export default function RootLayout({
@@ -27,11 +35,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <NavBar />
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
+        <main className="app-main flex-1">
           {children}
         </main>
         <Toaster />

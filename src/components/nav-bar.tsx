@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,11 +53,14 @@ export function NavBar() {
     .slice(0, 2) ?? user?.email?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+    <nav className="glass sticky top-0 z-50 border-b border-border/30">
       <div className="container mx-auto px-4 max-w-7xl flex h-14 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="font-bold text-lg tracking-tight">
-            Aria
+          <Link href="/" className="group flex items-center gap-2.5">
+            <Image src="/logo.svg" alt="Aria Labs" width={28} height={28} className="rounded-lg transition-transform group-hover:scale-105" />
+            <span className="text-lg font-medium text-foreground" style={{ fontFamily: "var(--font-logo), Georgia, serif" }}>
+              Aria <span className="font-normal text-muted-foreground">Labs</span><span className="text-accent-light">.</span>
+            </span>
           </Link>
           {user && (
             <div className="hidden md:flex items-center gap-1">
@@ -66,8 +70,8 @@ export function NavBar() {
                   href={link.href}
                   className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
                     pathname === link.href
-                      ? "bg-accent text-accent-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      ? "bg-accent/15 text-accent-light font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-surface-light/70"
                   }`}
                 >
                   {link.label}
@@ -81,8 +85,8 @@ export function NavBar() {
             href="/#library"
             className={`hidden px-3 py-1.5 rounded-md text-sm transition-colors md:inline-flex ${
               pathname === "/"
-                ? "bg-accent text-accent-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                ? "bg-accent/15 text-accent-light font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-surface-light/70"
             }`}
           >
             Skill Library
