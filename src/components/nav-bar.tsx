@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { User } from "@supabase/supabase-js";
 
 const navLinks = [
-  { href: "/", label: "Knowledge Base" },
+  { href: "/console", label: "Console" },
   { href: "/review", label: "Review" },
   { href: "/my-skills", label: "Mine" },
   { href: "/submit", label: "New" },
@@ -77,6 +77,16 @@ export function NavBar() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/#library"
+            className={`hidden px-3 py-1.5 rounded-md text-sm transition-colors md:inline-flex ${
+              pathname === "/"
+                ? "bg-accent text-accent-foreground font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            }`}
+          >
+            Skill Library
+          </Link>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="relative h-8 w-8 rounded-full outline-none">
