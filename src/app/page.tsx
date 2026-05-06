@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SkillCard } from "@/components/skill-card";
+import { PackageCard } from "@/components/package-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,9 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Boxes, Plus, Search } from "lucide-react";
 import type { SkillWithStats } from "@/lib/supabase/types";
+import type { PackageSummary } from "@/lib/packages/types";
 
 const SKILL_TYPES = [
   { value: "__all__", label: "All Types" },
@@ -43,9 +46,12 @@ const SORT_OPTIONS = [
 
 export default function BrowsePage() {
   const [skills, setSkills] = useState<SkillWithStats[]>([]);
+  const [packages, setPackages] = useState<PackageSummary[]>([]);
   const [teams, setTeams] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [packagesLoading, setPackagesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [packageError, setPackageError] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("__all__");
@@ -54,6 +60,42 @@ export default function BrowsePage() {
   const [sortBy, setSortBy] = useState("newest");
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchPackages = useCallback(async (searchQuery: string, type: string, agent: string, sort: string) => {
+    const supabase = createClient();
+
+    let dbQuery = supabase
+      .from("packages")
+      .select("*")
+      .eq("is_archived", false);
+
+    if (searchQuery) {
+      dbQuery = dbQuery.or(`name.ilike.%${searchQuery}%,slug.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+    }
+    if (type && type !== "__all__") {
+      dbQuery = dbQuery.eq("package_type", type);
+    }
+    if (agent && agent !== "__all__") {
+      dbQuery = dbQuery.contains("agent_compatibility", [agent]);
+    }
+
+    if (sort === "newest") {
+      dbQuery = dbQuery.order("updated_at", { ascending: false });
+    } else {
+      dbQuery = dbQuery.order("created_at", { ascending: false });
+    }
+
+    const { data, error: fetchError } = await dbQuery.limit(50);
+
+    if (fetchError) {
+      setPackageError(fetchError.message);
+    } else {
+      setPackages((data || []) as PackageSummary[]);
+      setPackageError(null);
+    }
+
+    setPackagesLoading(false);
+  }, []);
 
   const fetchSkills = useCallback(async (searchQuery: string, type: string, agent: string, team: string, sort: string) => {
     const supabase = createClient();
@@ -98,6 +140,7 @@ export default function BrowsePage() {
 
   // Initial load + fetch teams
   useEffect(() => {
+    fetchPackages(query, typeFilter, agentFilter, sortBy);
     fetchSkills(query, typeFilter, agentFilter, teamFilter, sortBy);
 
     const supabase = createClient();
@@ -116,6 +159,7 @@ export default function BrowsePage() {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      fetchPackages(value, typeFilter, agentFilter, sortBy);
       fetchSkills(value, typeFilter, agentFilter, teamFilter, sortBy);
     }, 300);
   };
@@ -132,8 +176,11 @@ export default function BrowsePage() {
     if (key === "team") setTeamFilter(value);
     if (key === "sort") setSortBy(value);
 
+    fetchPackages(query, newType, newAgent, newSort);
     fetchSkills(query, newType, newAgent, newTeam, newSort);
   };
+
+  const isFiltered = query || typeFilter !== "__all__" || agentFilter !== "__all__" || teamFilter !== "__all__";
 
   return (
     <div className="space-y-6">
@@ -148,6 +195,25 @@ export default function BrowsePage() {
           <Plus className="mr-2 h-4 w-4" />
           Create Skill
         </Link>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-2xl font-bold">{packages.length}</div>
+          <p className="text-xs text-muted-foreground">Packages</p>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-2xl font-bold">{skills.length}</div>
+          <p className="text-xs text-muted-foreground">Legacy Skills</p>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-2xl font-bold">{packages.filter((pkg) => pkg.package_type === "plugin").length}</div>
+          <p className="text-xs text-muted-foreground">Plugins</p>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-2xl font-bold">{packages.filter((pkg) => pkg.current_version_id).length}</div>
+          <p className="text-xs text-muted-foreground">Versioned</p>
+        </div>
       </div>
 
       {/* Filters - inline, no URL params */}
@@ -206,34 +272,72 @@ export default function BrowsePage() {
         </Select>
       </div>
 
-      {/* Results */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
-          ))}
-        </div>
-      ) : error ? (
-        <p className="text-destructive">Error loading skills: {error}</p>
-      ) : skills.length === 0 ? (
-        <div className="text-center py-16 space-y-4">
-          <p className="text-muted-foreground text-lg">
-            {query || typeFilter !== "__all__" || agentFilter !== "__all__" || teamFilter !== "__all__"
-              ? "No skills match your filters"
-              : "No skills yet. Be the first to share something your team uses."}
-          </p>
-          <Link href="/submit" className={buttonVariants()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create the first skill
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {skills.map((skill) => (
-            <SkillCard key={skill.id} skill={skill} />
-          ))}
-        </div>
-      )}
+      <Tabs defaultValue="packages">
+        <TabsList>
+          <TabsTrigger value="packages">
+            <Boxes className="mr-2 h-4 w-4" />
+            Packages
+          </TabsTrigger>
+          <TabsTrigger value="skills">Legacy Skills</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="packages" className="mt-4">
+          {packagesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : packageError ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm text-destructive">Error loading packages: {packageError}</p>
+              <p className="text-xs text-muted-foreground mt-1">The package tables may not be migrated in this environment yet.</p>
+            </div>
+          ) : packages.length === 0 ? (
+            <div className="text-center py-16 space-y-4">
+              <p className="text-muted-foreground text-lg">
+                {isFiltered ? "No packages match your filters" : "No packages yet. Publish a package to browse files and install versions."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {packages.map((pkg) => (
+                <PackageCard key={pkg.id} pkg={pkg} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="skills" className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <p className="text-destructive">Error loading skills: {error}</p>
+          ) : skills.length === 0 ? (
+            <div className="text-center py-16 space-y-4">
+              <p className="text-muted-foreground text-lg">
+                {isFiltered
+                  ? "No skills match your filters"
+                  : "No skills yet. Be the first to share something your team uses."}
+              </p>
+              <Link href="/submit" className={buttonVariants()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create the first skill
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {skills.map((skill) => (
+                <SkillCard key={skill.id} skill={skill} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
