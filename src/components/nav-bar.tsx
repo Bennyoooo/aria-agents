@@ -100,14 +100,9 @@ export function NavBar() {
               </DropdownMenu>
             </>
           ) : (
-            <>
-              <Link href="/interest" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                Early Access
-              </Link>
-              <Link href="/login" className={buttonVariants({ size: "sm" })}>
-                Sign in
-              </Link>
-            </>
+            <Link href="/interest" className={buttonVariants({ size: "sm" })}>
+              Early Access
+            </Link>
           )}
         </div>
       </div>
