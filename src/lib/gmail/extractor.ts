@@ -23,7 +23,7 @@ export interface ExtractedCandidate {
 
 const SKILL_SIGNALS = [
   { pattern: /(?:here'?s|try|use) (?:a |this |my )?(?:prompt|template|workflow|script|tool|checklist)/i, weight: 0.8, type: 'skill' as const },
-  { pattern: /(?:step\s*1|first,?\s*(?:you|we))[\s\S]{50,}(?:step\s*2|then|next)/is, weight: 0.7, type: 'skill' as const },
+  { pattern: /(?:step\s*1|first,?\s*(?:you|we))[\s\S]{50,}(?:step\s*2|then|next)/i, weight: 0.7, type: 'skill' as const },
   { pattern: /(?:I|we) (?:use|created|built|wrote|developed) (?:a |this )?(?:script|tool|automation|workflow|process)/i, weight: 0.7, type: 'skill' as const },
   { pattern: /(?:how to|guide|tutorial|instructions for|steps to)/i, weight: 0.6, type: 'skill' as const },
   { pattern: /(?:best practice|standard process|sop|runbook)/i, weight: 0.6, type: 'skill' as const },

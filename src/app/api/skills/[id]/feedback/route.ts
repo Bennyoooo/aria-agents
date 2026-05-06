@@ -5,6 +5,10 @@ import { classifySentiment, findMatchingGroup, type FeedbackGroup } from "@/lib/
 
 const AUTO_REVISION_THRESHOLD = 3;
 
+// Supabase service clients are passed through generated and untyped call sites.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ServiceSupabaseClient = ReturnType<typeof createClient<any, any, any>>;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -131,7 +135,7 @@ export async function POST(
 }
 
 async function triggerAutoRevision(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ServiceSupabaseClient,
   skillId: string,
   feedbackSummary: string,
   sampleNotes: string[]

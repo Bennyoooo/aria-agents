@@ -16,6 +16,16 @@ interface SkillStat {
   success_rate: number | null;
 }
 
+type RecentFeedback = {
+  id: string;
+  outcome: string;
+  notes: string | null;
+  source: string;
+  agent_name: string | null;
+  created_at: string;
+  skills: { id: string; title: string } | null;
+};
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [totalSkills, setTotalSkills] = useState(0);
@@ -24,15 +34,7 @@ export default function DashboardPage() {
   const [successRate, setSuccessRate] = useState<string>("—");
   const [topSkills, setTopSkills] = useState<SkillStat[]>([]);
   const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
-  const [recentFeedback, setRecentFeedback] = useState<Array<{
-    id: string;
-    outcome: string;
-    notes: string | null;
-    source: string;
-    agent_name: string | null;
-    created_at: string;
-    skills: { id: string; title: string } | null;
-  }>>([]);
+  const [recentFeedback, setRecentFeedback] = useState<RecentFeedback[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -86,7 +88,10 @@ export default function DashboardPage() {
         .select("id, outcome, notes, source, agent_name, created_at, skills(id, title)")
         .order("created_at", { ascending: false })
         .limit(15);
-      setRecentFeedback(recent as typeof recentFeedback || []);
+      setRecentFeedback(((recent || []) as unknown as RecentFeedback[]).map((item) => ({
+        ...item,
+        skills: Array.isArray(item.skills) ? item.skills[0] ?? null : item.skills,
+      })));
 
       setLoading(false);
     }

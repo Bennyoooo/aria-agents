@@ -21,7 +21,7 @@ export interface SlackMessage {
 const SKILL_PATTERNS = [
   { pattern: /(?:here'?s|try|use) (?:a |this |my )?prompt/i, type: 'prompt' as const, weight: 0.8 },
   { pattern: /(?:I|we) (?:use|created|built|made) (?:a |this )?(?:prompt|workflow|tool|script)/i, type: 'prompt' as const, weight: 0.7 },
-  { pattern: /step\s*1.*step\s*2/is, type: 'workflow' as const, weight: 0.6 },
+  { pattern: /step\s*1[\s\S]*step\s*2/i, type: 'workflow' as const, weight: 0.6 },
   { pattern: /```[\s\S]{100,}```/i, type: 'prompt' as const, weight: 0.5 },
   { pattern: /(?:works great|saved me|hours? (?:of|per)|game.?changer)/i, type: 'prompt' as const, weight: 0.4 },
   { pattern: /(?:mcp|tool|server|endpoint|api|install|npx|pip)/i, type: 'tool' as const, weight: 0.5 },
