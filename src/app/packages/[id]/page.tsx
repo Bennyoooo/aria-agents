@@ -12,6 +12,17 @@ import { MarkdownPreview } from "@/components/markdown-preview";
 import { Archive, Boxes, ExternalLink, File, FileText, Folder, GitBranch, Lock, Package, Server, Shield } from "lucide-react";
 import type { PackageDependency, PackageFile, PackageSummary, PackageVersion } from "@/lib/packages/types";
 
+const AGENT_LABELS: Record<string, string> = {
+  claude_code: "Claude Code",
+  opencode: "OpenCode",
+  chatgpt: "ChatGPT",
+  copilot: "Copilot",
+  gemini: "Gemini",
+  codex: "Codex",
+  cursor: "Cursor",
+  other: "Other",
+};
+
 const TYPE_CONFIG: Record<string, { label: string; color: string; icon: typeof FileText }> = {
   skill: { label: "Skill", color: "bg-blue-500/10 text-blue-600 border-blue-200", icon: FileText },
   mcp: { label: "MCP", color: "bg-green-500/10 text-green-600 border-green-200", icon: Server },
@@ -171,6 +182,18 @@ export default function PackageDetailPage() {
                   <ExternalLink className="h-3 w-3" /> Source
                 </a>
               </>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Compatible with</span>
+            {pkg.agent_compatibility.length > 0 ? (
+              pkg.agent_compatibility.map((agent) => (
+                <Badge key={agent} variant="secondary">
+                  {AGENT_LABELS[agent] || agent}
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="outline">Not specified</Badge>
             )}
           </div>
         </div>
@@ -368,14 +391,30 @@ export default function PackageDetailPage() {
             <CardHeader>
               <CardTitle>Access</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <Badge variant="outline">
-                <Lock className="mr-1 h-3 w-3" />
-                {pkg.visibility}
-              </Badge>
-              {pkg.tags.map((tag) => (
-                <Badge key={tag} variant="secondary">{tag}</Badge>
-              ))}
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">
+                  <Lock className="mr-1 h-3 w-3" />
+                  {pkg.visibility}
+                </Badge>
+                {pkg.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary">{tag}</Badge>
+                ))}
+              </div>
+              <div className="grid gap-2">
+                <span className="text-muted-foreground">Compatible agents</span>
+                <div className="flex flex-wrap gap-2">
+                  {pkg.agent_compatibility.length > 0 ? (
+                    pkg.agent_compatibility.map((agent) => (
+                      <Badge key={agent} variant="secondary">
+                        {AGENT_LABELS[agent] || agent}
+                      </Badge>
+                    ))
+                  ) : (
+                    <Badge variant="outline">Not specified</Badge>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

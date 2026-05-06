@@ -170,7 +170,7 @@ function parseArgs(args: string[]): ImportOptions {
       .split(",")
       .map((tag) => tag.trim().toLowerCase())
       .filter(Boolean),
-    agents: (value("agents", "claude_code,codex,cursor") || "")
+    agents: (value("agents", "claude_code") || "")
       .split(",")
       .map((agent) => agent.trim())
       .filter(Boolean),
