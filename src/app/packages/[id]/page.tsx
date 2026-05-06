@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CopyButton } from "@/components/copy-button";
+import { MarkdownPreview } from "@/components/markdown-preview";
 import { Archive, Boxes, Download, ExternalLink, File, FileText, Folder, GitBranch, Lock, Package, Server, Shield } from "lucide-react";
 import type { PackageDependency, PackageFile, PackageSummary, PackageVersion } from "@/lib/packages/types";
 
@@ -44,6 +45,9 @@ export default function PackageDetailPage() {
   const [version, setVersion] = useState<PackageVersion | null>(null);
   const [versions, setVersions] = useState<PackageVersion[]>([]);
   const [files, setFiles] = useState<PackageFile[]>([]);
+  const [skillMarkdown, setSkillMarkdown] = useState<string | null>(null);
+  const [skillMarkdownError, setSkillMarkdownError] = useState<string | null>(null);
+  const [skillMarkdownMode, setSkillMarkdownMode] = useState<"rendered" | "raw">("rendered");
   const [dependencies, setDependencies] = useState<PackageDependency[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -100,6 +104,19 @@ export default function PackageDetailPage() {
 
         setFiles((fileData || []) as PackageFile[]);
         setDependencies((dependencyData || []) as PackageDependency[]);
+
+        const skillFile = ((fileData || []) as PackageFile[]).find((file) => file.path === "SKILL.md");
+        if (skillFile) {
+          const response = await fetch(`/api/packages/versions/${selectedVersion.id}/files?path=${encodeURIComponent(skillFile.path)}`);
+
+          if (response.ok) {
+            const file = await response.json() as { content: string };
+            setSkillMarkdown(file.content);
+          } else {
+            const error = await response.json().catch(() => ({ error: "Could not read SKILL.md" }));
+            setSkillMarkdownError(error.error || "Could not read SKILL.md");
+          }
+        }
       }
 
       setLoading(false);
@@ -205,13 +222,59 @@ export default function PackageDetailPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="install">
+      <Tabs defaultValue={pkg.package_type === "skill" ? "skill" : "install"}>
         <TabsList>
+          {pkg.package_type === "skill" && <TabsTrigger value="skill">SKILL.md</TabsTrigger>}
           <TabsTrigger value="install">Install</TabsTrigger>
           <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
           <TabsTrigger value="dependencies">References ({dependencies.length})</TabsTrigger>
           <TabsTrigger value="metadata">Metadata</TabsTrigger>
         </TabsList>
+
+        {pkg.package_type === "skill" && (
+          <TabsContent value="skill" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  SKILL.md
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSkillMarkdownMode("rendered")}
+                    className={`rounded-md border px-3 py-1 text-xs ${skillMarkdownMode === "rendered" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                  >
+                    Rendered
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSkillMarkdownMode("raw")}
+                    className={`rounded-md border px-3 py-1 text-xs ${skillMarkdownMode === "raw" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                  >
+                    Raw
+                  </button>
+                  {skillMarkdown && <CopyButton text={skillMarkdown} skillId={pkg.id} label="Copy" />}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {skillMarkdown ? (
+                  skillMarkdownMode === "rendered" ? (
+                    <MarkdownPreview markdown={skillMarkdown} />
+                  ) : (
+                    <pre className="max-h-[680px] overflow-auto whitespace-pre-wrap rounded-lg bg-muted/50 p-4 font-mono text-sm">
+                      {skillMarkdown}
+                    </pre>
+                  )
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {skillMarkdownError || "No SKILL.md preview is available for this package version."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="install" className="space-y-4">
           <Card>

@@ -23,7 +23,9 @@ interface ImportOptions {
   namespace: string;
   slug: string;
   type: PackageType;
+  version: string;
   agents: string[];
+  tags: string[];
 }
 
 loadEnvLocal();
@@ -38,7 +40,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const commitSha = await resolveCommitSha(options.owner, options.repo, options.ref);
-  const version = `${options.ref}-${commitSha.slice(0, 7)}`;
+  const version = options.version;
   const sourceUrl = `https://github.com/${options.owner}/${options.repo}/tree/${commitSha}/${options.folder}`;
   const workDir = join(tmpdir(), `aria-import-${options.slug}-${Date.now()}`);
   const packageDir = join(workDir, options.slug);
@@ -113,7 +115,7 @@ async function main() {
       visibility: "public",
       source_url: sourceUrl,
       agent_compatibility: options.agents,
-      tags: ["anthropic", "pptx", "presentation", "slides", "skill"],
+      tags: options.tags,
     });
 
     const versionId = await upsertPackageVersion({
@@ -163,6 +165,11 @@ function parseArgs(args: string[]): ImportOptions {
     namespace: value("namespace", "anthropic")!,
     slug: value("slug", "pptx")!,
     type: (value("type", "skill") || "skill") as PackageType,
+    version: value("version", "1.0.0")!,
+    tags: (value("tags") || `anthropic,${value("slug", "pptx")},skill`)
+      .split(",")
+      .map((tag) => tag.trim().toLowerCase())
+      .filter(Boolean),
     agents: (value("agents", "claude_code,codex,cursor") || "")
       .split(",")
       .map((agent) => agent.trim())
